@@ -6,12 +6,18 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 
 ## Features
 
-- 📄 **PDF Import** — Extract structured data from existing resumes
-- ✏️ **AI Editing** — Add/update sections through natural conversation
-- 🎨 **4 Themes** — Modern, Classic, Minimal, Creative
-- 🌍 **6 Languages** — English, 中文, 日本語, Français, Deutsch, Español
-- 📑 **Dual Export** — Styled HTML + print-ready PDF (A4)
-- 🔒 **Local-first** — Everything runs locally, no data leaves your machine
+- **PDF Import** — Extract structured data from existing resumes
+- **AI Editing** — Add/update sections through natural conversation
+- **4 Themes** — Modern, Classic, Minimal, Creative
+- **6 Languages** — English, 中文, 日本語, Français, Deutsch, Español
+- **Dual Export** — Styled HTML + print-ready PDF (A4)
+- **Local-first** — Everything runs locally, no data leaves your machine
+
+## Prerequisites
+
+- **Python 3.7+** is required for resume generation scripts
+- **Optional**: `pip install pymupdf` for PDF import
+- **Optional**: `pip install pdfkit && brew install wkhtmltopdf` OR `pip install playwright && playwright install chromium` for PDF export
 
 ## Installation
 
@@ -25,24 +31,24 @@ openclaw skills install chijiang/resume-editor
 
 **Option 2: Manual install**
 
-Clone into your workspace skills directory:
-
 ```bash
 cd ~/.openclaw/workspace/skills
 git clone https://github.com/chijiang/resume-editor.git resume-builder
 ```
 
-The skill is auto-detected on next session.
+Restart your session to activate.
 
 ### Claude Code
 
 **Option 1: Install as a plugin (recommended)**
 
-```bash
-# In Claude Code, run:
-/plugin marketplace add chijiang/resume-editor
-/plugin install resume-builder@resume-editor
+In a Claude Code session, run:
+
 ```
+/plugin marketplace add chijiang/resume-editor
+```
+
+Then select `resume-builder` to install.
 
 **Option 2: Global install**
 
@@ -51,64 +57,48 @@ mkdir -p ~/.claude/skills
 git clone https://github.com/chijiang/resume-editor.git ~/.claude/skills/resume-builder
 ```
 
-The skill is auto-detected on next session.
-
-**Option 3: Use within a project**
-
-Clone into your project, Claude Code will discover `SKILL.md` automatically:
-
-```bash
-cd your-project
-git clone https://github.com/chijiang/resume-editor.git resume-builder
-```
+Restart your session to activate.
 
 ### OpenAI Codex
 
-Codex uses `AGENTS.md` files for custom instructions. Add skill instructions to your project's `AGENTS.md`:
+Clone into your project, then reference in `AGENTS.md`:
 
 ```bash
 git clone https://github.com/chijiang/resume-editor.git resume-builder
 ```
 
-Then add to `AGENTS.md` in your project root:
+Add to `AGENTS.md` in your project root:
 
 ```markdown
-## Skills
-- Resume Builder: See `resume-builder/SKILL.md`
+## Resume Builder Skill
+- Instructions: Follow `resume-builder/SKILL.md`
+- Scripts: `resume-builder/scripts/`
 ```
 
-## Quick Start
+## Usage
 
-### Prerequisites
+After installing, just talk to your AI agent naturally:
 
-```bash
-# Required: Python 3.7+
-python3 --version
+- "Create a resume for me"
+- "Import my resume from `resume.pdf`"
+- "Add a project section: built a React dashboard"
+- "Export my resume as PDF with the modern theme"
+- "Translate my resume to Chinese"
 
-# Optional: PDF import
-pip install pymupdf
+The skill auto-detects when you're working on resumes and guides the process.
 
-# Optional: PDF export (choose one)
-pip install pdfkit && brew install wkhtmltopdf          # wkhtmltopdf
-pip install playwright && playwright install chromium    # Playwright
-```
+## Quick Start (CLI)
 
-### Generate Resume
+If you prefer to run scripts directly without an AI agent:
 
 ```bash
-# 1. Start from example
-cp references/example-resume.json my-resume.json
+# Generate HTML from example data
+python3 scripts/generate_html.py --theme modern --lang en references/example-resume.json output.html
 
-# 2. Edit with your info, then generate HTML
-python3 scripts/generate_html.py --theme modern --lang en my-resume.json output.html
-
-# 3. Convert to PDF
+# Convert to PDF
 python3 scripts/generate_pdf.py output.html output.pdf
-```
 
-### Import from PDF
-
-```bash
+# Import from existing PDF
 python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 ```
 
