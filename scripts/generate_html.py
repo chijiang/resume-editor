@@ -42,7 +42,7 @@ SECTION_TITLES = {
         "skills": "Compétences"
     },
     "de": {
-        "summary": "Berufserfahrung",
+        "summary": "Zusammenfassung",
         "experience": "Berufserfahrung",
         "education": "Ausbildung",
         "projects": "Projekte",
@@ -131,9 +131,10 @@ def generate_resume_html(resume_data, theme="modern", language="en"):
     # Build HTML content
     html_content = build_sections(resume_data, language)
 
-    # Insert CSS and content into template
+    # Insert CSS, content, and language into template
     full_html = template.replace("{{CSS}}", css)
     full_html = full_html.replace("{{CONTENT}}", html_content)
+    full_html = full_html.replace("{{LANG}}", language)
 
     return full_html
 
