@@ -1,0 +1,18 @@
+{
+  "name": "resume-builder",
+  "version": "1.3.0",
+  "description": "Build, edit, and format professional resumes with PDF import, HTML/PDF export, multi-language output, and style customization.",
+  "author": "Chijiang",
+  "skills": [
+    {
+      "name": "resume-builder",
+      "description": "Build, edit, and format professional resumes with support for PDF import, HTML/PDF export, multi-language output, and style customization. Use when users need to: (1) Create a new resume from scratch, (2) Import and modify an existing PDF resume, (3) Add/update education, work experience, or projects, (4) Export to styled HTML or PDF formats, (5) Generate multi-language versions of the resume, or (6) Apply professional styling and formatting to resume content."
+    }
+  ],
+  "commands": [
+    {
+      "name": "resume-export",
+      "description": "Export resume JSON to styled HTML or PDF"
+    }
+  ]
+}
