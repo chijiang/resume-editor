@@ -13,6 +13,13 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 - **Dual Export** — Styled HTML + print-ready PDF (A4)
 - **Local-first** — Everything runs locally, no data leaves your machine
 
+<p align="center">
+  <img src="previews/modern.png" width="180" alt="Modern" />
+  <img src="previews/classic.png" width="180" alt="Classic" />
+  <img src="previews/minimal.png" width="180" alt="Minimal" />
+  <img src="previews/creative.png" width="180" alt="Creative" />
+</p>
+
 ## Prerequisites
 
 - **Python 3.7+** is required for resume generation scripts
@@ -106,10 +113,10 @@ python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 
 | Theme | Style | Preview |
 |-------|-------|---------|
-| `modern` | Clean, contemporary | Default |
-| `classic` | Traditional, formal | — |
-| `minimal` | Content-focused | — |
-| `creative` | Bold, creative | — |
+| `modern` | Clean, contemporary | ![Modern](previews/modern.png) |
+| `classic` | Traditional, formal | ![Classic](previews/classic.png) |
+| `minimal` | Content-focused | ![Minimal](previews/minimal.png) |
+| `creative` | Bold, colorful | ![Creative](previews/creative.png) |
 
 ## Languages
 
