@@ -13,21 +13,6 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 - **Dual Export** — Styled HTML + print-ready PDF (A4)
 - **Local-first** — Everything runs locally, no data leaves your machine
 
-<table align="center">
-  <tr>
-    <td><img src="previews/modern.png" width="180" alt="Modern" /></td>
-    <td><img src="previews/classic.png" width="180" alt="Classic" /></td>
-    <td><img src="previews/minimal.png" width="180" alt="Minimal" /></td>
-    <td><img src="previews/creative.png" width="180" alt="Creative" /></td>
-  </tr>
-  <tr align="center">
-    <td><b>Modern</b></td>
-    <td><b>Classic</b></td>
-    <td><b>Minimal</b></td>
-    <td><b>Creative</b></td>
-  </tr>
-</table>
-
 ## Prerequisites
 
 - **Python 3.7+** is required for resume generation scripts
@@ -117,22 +102,6 @@ python3 scripts/generate_pdf.py output.html output.pdf
 python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 ```
 
-## Themes
-
-<table>
-  <tr>
-    <td align="center"><b>Modern</b><br>Clean, contemporary</td>
-    <td align="center"><b>Classic</b><br>Traditional, formal</td>
-    <td align="center"><b>Minimal</b><br>Content-focused</td>
-    <td align="center"><b>Creative</b><br>Bold, colorful</td>
-  </tr>
-  <tr>
-    <td><img src="previews/modern.png" width="200" alt="Modern" /></td>
-    <td><img src="previews/classic.png" width="200" alt="Classic" /></td>
-    <td><img src="previews/minimal.png" width="200" alt="Minimal" /></td>
-    <td><img src="previews/creative.png" width="200" alt="Creative" /></td>
-  </tr>
-</table>
 
 ## Languages
 

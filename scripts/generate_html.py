@@ -8,7 +8,6 @@ import json
 import sys
 import argparse
 from pathlib import Path
-from datetime import datetime
 import html as html_escape
 
 # Section titles in multiple languages
@@ -108,7 +107,592 @@ def is_valid_email(email):
     return re.match(pattern, email) is not None
 
 
-def generate_resume_html(resume_data, theme="modern", language="en"):
+def build_edit_script(resume_data, language):
+    """Build inline JS/CSS for edit mode. Returns HTML string to inject before </body>."""
+    json_snapshot = json.dumps(resume_data, ensure_ascii=False, indent=2)
+    # Escape for safe embedding in HTML
+    json_snapshot_escaped = json_snapshot.replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+
+    return f'''
+<script type="application/json" id="resume-source-data">
+{json_snapshot_escaped}
+</script>
+<style>
+/* Edit button */
+#resume-edit-btn {{
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 99999;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(30, 41, 59, 0.85);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.25;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}}
+#resume-edit-btn:hover {{
+    opacity: 1;
+    transform: scale(1.08);
+}}
+/* Toolbar */
+#resume-edit-toolbar {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100000;
+    height: 48px;
+    background: #1e293b;
+    color: #f1f5f9;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}}
+#resume-edit-toolbar.visible {{
+    display: flex;
+}}
+#resume-edit-toolbar .toolbar-label {{
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}}
+#resume-edit-toolbar .toolbar-actions {{
+    display: flex;
+    gap: 8px;
+}}
+#resume-edit-toolbar button {{
+    padding: 6px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}}
+.toolbar-btn-copy {{
+    background: #22c55e;
+    color: #fff;
+}}
+.toolbar-btn-copy:hover {{
+    background: #16a34a;
+}}
+.toolbar-btn-cancel {{
+    background: #ef4444;
+    color: #fff;
+}}
+.toolbar-btn-cancel:hover {{
+    background: #dc2626;
+}}
+/* Toast notification */
+#resume-edit-toast {{
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100001;
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+}}
+#resume-edit-toast.show {{
+    display: block;
+    opacity: 1;
+}}
+/* Editable state visual cues */
+body.resume-editing {{
+    padding-top: 48px !important;
+}}
+body.resume-editing [contenteditable="true"] {{
+    outline: 1px dashed rgba(100, 116, 200, 0.45);
+    outline-offset: 3px;
+    border-radius: 2px;
+    transition: outline-color 0.15s, background 0.15s;
+}}
+body.resume-editing [contenteditable="true"]:focus {{
+    outline: 1px solid rgba(100, 116, 200, 0.7);
+    background: rgba(66, 133, 244, 0.05);
+}}
+/* Dark background override (sidebar / gradient header) */
+body.resume-editing .sidebar [contenteditable="true"],
+body.resume-editing .resume-header [contenteditable="true"] {{
+    outline-color: rgba(200, 200, 255, 0.4);
+}}
+body.resume-editing .sidebar [contenteditable="true"]:focus,
+body.resume-editing .resume-header [contenteditable="true"]:focus {{
+    outline-color: rgba(200, 200, 255, 0.7);
+    background: rgba(255, 255, 255, 0.08);
+}}
+/* List add/remove buttons */
+.edit-add-btn, .edit-remove-btn {{
+    display: none;
+}}
+body.resume-editing .edit-add-btn {{
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px dashed rgba(100, 116, 200, 0.5);
+    background: transparent;
+    color: rgba(100, 116, 200, 0.7);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 4px;
+    vertical-align: middle;
+    transition: background 0.15s;
+}}
+body.resume-editing .edit-add-btn:hover {{
+    background: rgba(100, 116, 200, 0.12);
+}}
+body.resume-editing li {{
+    position: relative;
+}}
+body.resume-editing li .edit-remove-btn {{
+    display: none;
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s;
+}}
+body.resume-editing li:hover .edit-remove-btn {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}}
+body.resume-editing li .edit-remove-btn:hover {{
+    background: rgba(239, 68, 68, 0.3);
+}}
+/* Print: hide all edit UI */
+@media print {{
+    #resume-edit-btn,
+    #resume-edit-toolbar,
+    #resume-edit-toast,
+    .edit-add-btn,
+    .edit-remove-btn {{
+        display: none !important;
+    }}
+    body.resume-editing {{
+        padding-top: 0 !important;
+    }}
+    body.resume-editing [contenteditable] {{
+        outline: none !important;
+        background: transparent !important;
+    }}
+}}
+</style>
+<button id="resume-edit-btn" title="Edit resume">&#9998;</button>
+<div id="resume-edit-toolbar">
+    <span class="toolbar-label">Editing Resume</span>
+    <div class="toolbar-actions">
+        <button class="toolbar-btn-copy" id="edit-copy-btn">Copy JSON</button>
+        <button class="toolbar-btn-cancel" id="edit-cancel-btn">Done</button>
+    </div>
+</div>
+<div id="resume-edit-toast"></div>
+<script>
+(function() {{
+    var btn = document.getElementById('resume-edit-btn');
+    var toolbar = document.getElementById('resume-edit-toolbar');
+    var copyBtn = document.getElementById('edit-copy-btn');
+    var cancelBtn = document.getElementById('edit-cancel-btn');
+    var toast = document.getElementById('resume-edit-toast');
+    var isEditing = false;
+    var originalHtml = null;
+
+    var EDITABLE_SELECTORS = [
+        '.resume-header .name',
+        '.contact-email a',
+        '.contact-phone',
+        '.contact-location',
+        '.contact-linkedin a',
+        '.contact-github a',
+        '[data-section="summary"] p',
+        '.experience-item .company-name',
+        '.experience-item .position',
+        '.experience-item .period',
+        '.experience-item .location',
+        '.experience-item .experience-description',
+        '.experience-item .achievements li',
+        '.experience-item .responsibilities li',
+        '.education-item .institution',
+        '.education-item .degree',
+        '.education-item .period',
+        '.education-item .location',
+        '.education-item .gpa',
+        '.education-item .honors',
+        '.project-item .project-name',
+        '.project-item .role',
+        '.project-item .period',
+        '.project-item .technologies',
+        '.project-item .project-description',
+        '.project-item .achievements li',
+        '.skill-category .category-title',
+        '.skill-category .skill-list'
+    ];
+
+    var LIST_CONTAINERS = '.achievements, .responsibilities';
+
+    function getOriginalData() {{
+        var el = document.getElementById('resume-source-data');
+        if (!el) return {{}};
+        return JSON.parse(el.textContent);
+    }}
+
+    function showToast(msg, duration) {{
+        toast.textContent = msg;
+        toast.classList.add('show');
+        toast.style.display = 'block';
+        setTimeout(function() {{
+            toast.classList.remove('show');
+            setTimeout(function() {{ toast.style.display = 'none'; }}, 300);
+        }}, duration || 2000);
+    }}
+
+    function toggleEditMode() {{
+        if (!isEditing) {{
+            enterEditMode();
+        }} else {{
+            exitEditMode(true);
+        }}
+    }}
+
+    function enterEditMode() {{
+        isEditing = true;
+        originalHtml = document.querySelector('.resume-container').innerHTML;
+        document.body.classList.add('resume-editing');
+        toolbar.classList.add('visible');
+        btn.innerHTML = '&#10005;';
+        btn.title = 'Exit edit mode';
+
+        EDITABLE_SELECTORS.forEach(function(sel) {{
+            var els = document.querySelectorAll(sel);
+            els.forEach(function(el) {{
+                el.setAttribute('contenteditable', 'true');
+            }});
+        }});
+
+        // Suppress link navigation during editing
+        document.querySelectorAll('.contact-info a').forEach(function(a) {{
+            a.addEventListener('click', preventNav);
+        }});
+
+        // Add list item management buttons
+        addListButtons();
+    }}
+
+    function preventNav(e) {{
+        if (isEditing) {{
+            e.preventDefault();
+            e.stopPropagation();
+        }}
+    }}
+
+    function exitEditMode(save) {{
+        if (!isEditing) return;
+        isEditing = false;
+        document.body.classList.remove('resume-editing');
+        toolbar.classList.remove('visible');
+        btn.innerHTML = '&#9998;';
+        btn.title = 'Edit resume';
+
+        EDITABLE_SELECTORS.forEach(function(sel) {{
+            var els = document.querySelectorAll(sel);
+            els.forEach(function(el) {{
+                el.removeAttribute('contenteditable');
+            }});
+        }});
+
+        // Restore link navigation
+        document.querySelectorAll('.contact-info a').forEach(function(a) {{
+            a.removeEventListener('click', preventNav);
+        }});
+
+        removeListButtons();
+    }}
+
+    function addListButtons() {{
+        document.querySelectorAll(LIST_CONTAINERS).forEach(function(ul) {{
+            ul.style.position = 'relative';
+            var addBtn = document.createElement('button');
+            addBtn.className = 'edit-add-btn';
+            addBtn.textContent = '+';
+            addBtn.title = 'Add item';
+            addBtn.addEventListener('click', function() {{
+                var li = document.createElement('li');
+                li.setAttribute('contenteditable', 'true');
+                li.textContent = 'New item';
+                attachRemoveBtn(li);
+                ul.appendChild(li);
+                li.focus();
+                // Select the placeholder text
+                var range = document.createRange();
+                range.selectNodeContents(li);
+                var sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }});
+            ul.parentNode.insertBefore(addBtn, ul.nextSibling);
+
+            ul.querySelectorAll('li').forEach(attachRemoveBtn);
+        }});
+    }}
+
+    function attachRemoveBtn(li) {{
+        var rmBtn = document.createElement('button');
+        rmBtn.className = 'edit-remove-btn';
+        rmBtn.textContent = '\\u00d7';
+        rmBtn.title = 'Remove item';
+        rmBtn.addEventListener('click', function(e) {{
+            e.stopPropagation();
+            li.remove();
+        }});
+        li.appendChild(rmBtn);
+    }}
+
+    function removeListButtons() {{
+        document.querySelectorAll('.edit-add-btn').forEach(function(b) {{ b.remove(); }});
+        document.querySelectorAll('.edit-remove-btn').forEach(function(b) {{ b.remove(); }});
+    }}
+
+    function extractToJson() {{
+        var src = getOriginalData();
+        var result = JSON.parse(JSON.stringify(src)); // deep clone
+
+        // Personal
+        var name = document.querySelector('.resume-header .name');
+        if (name && result.personal) result.personal.name = name.textContent.trim();
+
+        var emailLink = document.querySelector('.contact-email a');
+        if (emailLink && result.personal) {{
+            result.personal.email = emailLink.textContent.trim();
+        }}
+
+        var phone = document.querySelector('.contact-phone');
+        if (phone && result.personal) result.personal.phone = phone.textContent.trim();
+
+        var location = document.querySelector('.contact-location');
+        if (location && result.personal) result.personal.location = location.textContent.trim();
+
+        var linkedin = document.querySelector('.contact-linkedin a');
+        if (linkedin && result.personal) result.personal.linkedin = linkedin.textContent.trim();
+
+        var github = document.querySelector('.contact-github a');
+        if (github && result.personal) result.personal.github = github.textContent.trim();
+
+        // Summary
+        var summaryP = document.querySelector('[data-section="summary"] p');
+        if (summaryP) result.summary = summaryP.textContent.trim();
+
+        // Experience
+        if (result.experience) {{
+            var expItems = document.querySelectorAll('.experience-item');
+            for (var i = 0; i < expItems.length; i++) {{
+                if (!result.experience[i]) result.experience[i] = {{}};
+                var item = expItems[i];
+                var el;
+
+                el = item.querySelector('.company-name');
+                if (el) result.experience[i].company = el.textContent.trim();
+
+                el = item.querySelector('.position');
+                if (el) result.experience[i].position = el.textContent.trim();
+
+                el = item.querySelector('.period');
+                if (el) result.experience[i].period = el.textContent.trim();
+
+                el = item.querySelector('.location');
+                if (el) result.experience[i].location = el.textContent.trim();
+
+                el = item.querySelector('.experience-description');
+                if (el) result.experience[i].description = el.textContent.trim();
+
+                el = item.querySelector('.responsibilities');
+                if (el) {{
+                    result.experience[i].responsibilities = [];
+                    el.querySelectorAll('li').forEach(function(li) {{
+                        var t = li.textContent.trim();
+                        if (t) result.experience[i].responsibilities.push(t);
+                    }});
+                }}
+
+                el = item.querySelector('.achievements');
+                if (el) {{
+                    result.experience[i].achievements = [];
+                    el.querySelectorAll('li').forEach(function(li) {{
+                        var t = li.textContent.trim();
+                        if (t) result.experience[i].achievements.push(t);
+                    }});
+                }}
+            }}
+        }}
+
+        // Education
+        if (result.education) {{
+            var eduItems = document.querySelectorAll('.education-item');
+            for (var i = 0; i < eduItems.length; i++) {{
+                if (!result.education[i]) result.education[i] = {{}};
+                var item = eduItems[i];
+                var el;
+
+                el = item.querySelector('.institution');
+                if (el) result.education[i].institution = el.textContent.trim();
+
+                el = item.querySelector('.degree');
+                if (el) result.education[i].degree = el.textContent.trim();
+
+                el = item.querySelector('.period');
+                if (el) result.education[i].period = el.textContent.trim();
+
+                el = item.querySelector('.location');
+                if (el) result.education[i].location = el.textContent.trim();
+
+                el = item.querySelector('.gpa');
+                if (el) {{
+                    var gpaText = el.textContent.trim();
+                    result.education[i].gpa = gpaText.replace(/^GPA:\\s*/, '');
+                }}
+
+                el = item.querySelector('.honors');
+                if (el) {{
+                    var honorsText = el.textContent.trim();
+                    var cleaned = honorsText.replace(/^[^:]+:\\s*/, '');
+                    result.education[i].honors = cleaned.split(',').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+                }}
+            }}
+        }}
+
+        // Projects
+        if (result.projects) {{
+            var projItems = document.querySelectorAll('.project-item');
+            for (var i = 0; i < projItems.length; i++) {{
+                if (!result.projects[i]) result.projects[i] = {{}};
+                var item = projItems[i];
+                var el;
+
+                el = item.querySelector('.project-name');
+                if (el) result.projects[i].name = el.textContent.trim();
+
+                el = item.querySelector('.role');
+                if (el) result.projects[i].role = el.textContent.trim();
+
+                el = item.querySelector('.period');
+                if (el) result.projects[i].period = el.textContent.trim();
+
+                el = item.querySelector('.technologies');
+                if (el) {{
+                    var techText = el.textContent.trim();
+                    var cleaned = techText.replace(/^[^:]+:\\s*/, '');
+                    result.projects[i].technologies = cleaned.split(',').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+                }}
+
+                el = item.querySelector('.project-description');
+                if (el) result.projects[i].description = el.textContent.trim();
+
+                el = item.querySelector('.achievements');
+                if (el) {{
+                    result.projects[i].achievements = [];
+                    el.querySelectorAll('li').forEach(function(li) {{
+                        var t = li.textContent.trim();
+                        if (t) result.projects[i].achievements.push(t);
+                    }});
+                }}
+            }}
+        }}
+
+        // Skills
+        if (result.skills) {{
+            // Build a mapping from rendered title back to original JSON key
+            var keyMap = {{}};
+            Object.keys(result.skills).forEach(function(key) {{
+                var rendered = key.replace(/_/g, ' ').replace(/\\b\\w/g, function(c) {{ return c.toUpperCase(); }});
+                keyMap[rendered] = key;
+            }});
+
+            document.querySelectorAll('.skill-category').forEach(function(cat) {{
+                var titleEl = cat.querySelector('.category-title');
+                var listEl = cat.querySelector('.skill-list');
+                if (!titleEl || !listEl) return;
+
+                var title = titleEl.textContent.trim();
+                var skillsText = listEl.textContent.trim();
+                var skillsArr = skillsText.split(',').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+
+                // Match to original key, or use the title as new key
+                var jsonKey = keyMap[title] || title.toLowerCase().replace(/\\s+/g, '_');
+                if (skillsArr.length > 0) {{
+                    result.skills[jsonKey] = skillsArr;
+                }} else {{
+                    result.skills[jsonKey] = "";
+                }}
+            }});
+        }}
+
+        return result;
+    }}
+
+    function copyJson() {{
+        var data = extractToJson();
+        var jsonStr = JSON.stringify(data, null, 2);
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {{
+            navigator.clipboard.writeText(jsonStr).then(function() {{
+                showToast('JSON copied to clipboard!', 2500);
+            }}).catch(function() {{
+                fallbackCopy(jsonStr);
+            }});
+        }} else {{
+            fallbackCopy(jsonStr);
+        }}
+    }}
+
+    function fallbackCopy(jsonStr) {{
+        console.log('=== RESUME JSON ===');
+        console.log(jsonStr);
+        console.log('=== END RESUME JSON ===');
+        showToast('JSON printed to browser console (F12)', 3500);
+    }}
+
+    btn.addEventListener('click', toggleEditMode);
+    copyBtn.addEventListener('click', copyJson);
+    cancelBtn.addEventListener('click', function() {{ exitEditMode(true); }});
+}})();
+</script>
+'''
+
+
+def generate_resume_html(resume_data, theme="modern", language="en", editable=False):
     """
     Generate HTML resume from JSON data with specified theme and language.
     """
@@ -131,10 +715,14 @@ def generate_resume_html(resume_data, theme="modern", language="en"):
     # Build HTML content
     html_content = build_sections(resume_data, language)
 
-    # Insert CSS, content, and language into template
+    # Build edit script payload if editable mode is enabled
+    edit_payload = build_edit_script(resume_data, language) if editable else ""
+
+    # Insert CSS, content, language, and edit script into template
     full_html = template.replace("{{CSS}}", css)
     full_html = full_html.replace("{{CONTENT}}", html_content)
     full_html = full_html.replace("{{LANG}}", language)
+    full_html = full_html.replace("{{EDIT_SCRIPT}}", edit_payload)
 
     return full_html
 
@@ -378,6 +966,8 @@ def main():
                         help='Resume theme (default: modern)')
     parser.add_argument('--lang', default='en', choices=['en', 'zh', 'ja', 'fr', 'de', 'es'],
                         help='Language (default: en)')
+    parser.add_argument('--editable', action='store_true',
+                        help='Add inline editing capabilities to the HTML output')
 
     args = parser.parse_args()
 
@@ -407,7 +997,7 @@ def main():
     # Generate HTML
     print(f"Generating HTML resume with theme '{args.theme}' in {args.lang}...")
     try:
-        html = generate_resume_html(resume_data, theme=args.theme, language=args.lang)
+        html = generate_resume_html(resume_data, theme=args.theme, language=args.lang, editable=args.editable)
     except Exception as e:
         print(f"Error: Failed to generate HTML")
         print(f"Details: {e}")

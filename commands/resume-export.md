@@ -17,6 +17,9 @@ arguments:
   - name: output
     description: "Output file path (default: resume_output.html)"
     required: false
+  - name: editable
+    description: "Add inline editing capabilities to the HTML output"
+    required: false
 ---
 
 Export a resume JSON file to a styled HTML or PDF document.
@@ -29,7 +32,7 @@ Export a resume JSON file to a styled HTML or PDF document.
    - Otherwise use `resume_output.html` (or `.pdf` if format is pdf)
 3. Run the generation script:
    ```bash
-   python3 "$SKILL_DIR/scripts/generate_html.py" --theme "$theme" --lang "$lang" "$input" "$output_path"
+   python3 "$SKILL_DIR/scripts/generate_html.py" --theme "$theme" --lang "$lang" $([[ "$editable" == "true" ]] && echo "--editable") "$input" "$output_path"
    ```
 4. If `$format` is `pdf`, also run:
    ```bash

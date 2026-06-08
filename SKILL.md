@@ -66,6 +66,30 @@ This separation makes the resume scannable for HR while providing depth for engi
 **Available themes:** `modern`, `classic`, `minimal`, `creative`
 **Available languages:** `en`, `zh`, `ja`, `fr`, `de`, `es`
 
+### 4. Interactive Edit Mode (Edit-Review-Export)
+
+For collaborative refinement with the user, generate an editable HTML that includes inline editing capabilities:
+
+```bash
+python3 "$SKILL_DIR/scripts/generate_html.py" --theme modern --lang en --editable resume.json output.html
+```
+
+**Workflow:**
+
+1. Generate the editable HTML and tell the user to open it in a browser.
+2. Guide the user: "Hover over the top-right corner to reveal the edit button (pencil icon), click it to enter edit mode. You can directly modify any text in the resume."
+3. The user edits content in-browser — all text fields, list items (add/remove with +/- buttons), and skill lists are editable.
+4. When done, the user clicks "Copy JSON" in the toolbar to copy the updated resume JSON to clipboard.
+5. The user pastes the JSON back to you (or if you have Playwright access, you can extract it directly from the page).
+6. **Final review**: Check the updated content for grammar, spelling, consistency, and formatting. Suggest corrections if needed.
+7. Apply any corrections to `resume.json`.
+8. Generate the final, non-editable version for export (HTML or PDF) using the standard export command (without `--editable`).
+
+**Notes:**
+- Edit UI is hidden during print/PDF export, so the visual output is unaffected.
+- The toolbar provides "Copy JSON" (copies to clipboard) with a fallback to browser console.
+- If you have Playwright access, you can evaluate `JSON.stringify(window.extractToJson ? extractToJson() : 'N/A')` to read edits programmatically.
+
 ## Content Best Practices
 
 - **Quantify achievements**: Include numbers and metrics (e.g., "Improved efficiency by 30%")
