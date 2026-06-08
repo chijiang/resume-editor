@@ -141,32 +141,36 @@ def generate_resume_html(resume_data, theme="modern", language="en"):
 
 def build_sections(resume_data, language):
     """Build HTML sections from resume data."""
-    sections = []
+    sidebar_sections = []
+    main_sections = []
 
-    # Header (Personal Info)
-    sections.append(build_header(resume_data.get("personal", {}), language))
+    # Header (Personal Info) — always in sidebar
+    sidebar_sections.append(build_header(resume_data.get("personal", {}), language))
 
     # Summary
     if resume_data.get("summary"):
-        sections.append(build_summary(resume_data["summary"], language))
+        main_sections.append(build_summary(resume_data["summary"], language))
 
     # Experience
     if resume_data.get("experience"):
-        sections.append(build_experience(resume_data["experience"], language))
+        main_sections.append(build_experience(resume_data["experience"], language))
 
     # Education
     if resume_data.get("education"):
-        sections.append(build_education(resume_data["education"], language))
+        main_sections.append(build_education(resume_data["education"], language))
 
     # Projects
     if resume_data.get("projects"):
-        sections.append(build_projects(resume_data["projects"], language))
+        main_sections.append(build_projects(resume_data["projects"], language))
 
-    # Skills
+    # Skills — always in sidebar
     if resume_data.get("skills"):
-        sections.append(build_skills(resume_data["skills"], language))
+        sidebar_sections.append(build_skills(resume_data["skills"], language))
 
-    return "\n".join(sections)
+    sidebar_html = '<aside class="sidebar">' + "\n".join(sidebar_sections) + '</aside>'
+    main_html = '<main class="main-content">' + "\n".join(main_sections) + '</main>'
+
+    return sidebar_html + "\n" + main_html
 
 
 def build_header(personal, language):

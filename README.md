@@ -13,12 +13,20 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 - **Dual Export** — Styled HTML + print-ready PDF (A4)
 - **Local-first** — Everything runs locally, no data leaves your machine
 
-<p align="center">
-  <img src="previews/modern.png" width="180" alt="Modern" />
-  <img src="previews/classic.png" width="180" alt="Classic" />
-  <img src="previews/minimal.png" width="180" alt="Minimal" />
-  <img src="previews/creative.png" width="180" alt="Creative" />
-</p>
+<table align="center">
+  <tr>
+    <td><img src="previews/modern.png" width="180" alt="Modern" /></td>
+    <td><img src="previews/classic.png" width="180" alt="Classic" /></td>
+    <td><img src="previews/minimal.png" width="180" alt="Minimal" /></td>
+    <td><img src="previews/creative.png" width="180" alt="Creative" /></td>
+  </tr>
+  <tr align="center">
+    <td><b>Modern</b></td>
+    <td><b>Classic</b></td>
+    <td><b>Minimal</b></td>
+    <td><b>Creative</b></td>
+  </tr>
+</table>
 
 ## Prerequisites
 
