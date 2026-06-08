@@ -17,6 +17,14 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 
 ### OpenClaw
 
+**Option 1: Install from ClawHub (recommended)**
+
+```bash
+openclaw skills install chijiang/resume-editor
+```
+
+**Option 2: Manual install**
+
 Clone into your workspace skills directory:
 
 ```bash
@@ -32,8 +40,8 @@ The skill is auto-detected on next session.
 
 ```bash
 # In Claude Code, run:
-/plugin marketplace add chijiang/skills
-/plugin install resume-builder@chijiang-skills
+/plugin marketplace add chijiang/resume-editor
+/plugin install resume-builder@resume-editor
 ```
 
 **Option 2: Global install**
