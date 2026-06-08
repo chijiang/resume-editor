@@ -28,36 +28,45 @@ The skill is auto-detected on next session.
 
 ### Claude Code
 
-Clone into your project's `.claudeskills` directory:
+**Option 1: Install as a plugin (recommended)**
 
 ```bash
-mkdir -p .claudeskills
-cd .claudeskills
-git clone https://github.com/chijiang/resume-editor.git resume-builder
+# In Claude Code, run:
+/plugin marketplace add chijiang/skills
+/plugin install resume-builder@chijiang-skills
 ```
 
-Reference in `CLAUDE.md`:
+**Option 2: Global install**
 
-```markdown
-## Skills
-- Resume Builder: See `.claudeskills/resume-builder/SKILL.md`
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/chijiang/resume-editor.git ~/.claude/skills/resume-builder
+```
+
+The skill is auto-detected on next session.
+
+**Option 3: Use within a project**
+
+Clone into your project, Claude Code will discover `SKILL.md` automatically:
+
+```bash
+cd your-project
+git clone https://github.com/chijiang/resume-editor.git resume-builder
 ```
 
 ### OpenAI Codex
 
-Clone into your project's instructions directory:
+Codex uses `AGENTS.md` files for custom instructions. Add skill instructions to your project's `AGENTS.md`:
 
 ```bash
-mkdir -p .codex/instructions
-cd .codex/instructions
 git clone https://github.com/chijiang/resume-editor.git resume-builder
 ```
 
-Reference in `AGENTS.md`:
+Then add to `AGENTS.md` in your project root:
 
 ```markdown
 ## Skills
-- Resume Builder: See `.codex/instructions/resume-builder/SKILL.md`
+- Resume Builder: See `resume-builder/SKILL.md`
 ```
 
 ## Quick Start

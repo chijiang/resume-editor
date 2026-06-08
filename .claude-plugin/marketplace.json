@@ -1,0 +1,17 @@
+{
+  "name": "resume-editor",
+  "metadata": {
+    "description": "AI-powered resume builder — PDF import, multi-theme/multi-language editing, HTML and PDF export",
+    "version": "1.3.0"
+  },
+  "plugins": [
+    {
+      "name": "resume-builder",
+      "description": "Build, edit, and format professional resumes with PDF import, HTML/PDF export, multi-language output, and style customization. Use when users need to create a new resume, import and modify an existing PDF resume, add/update education, work experience, or projects, export to styled HTML or PDF formats, generate multi-language versions, or apply professional styling and formatting to resume content.",
+      "source": "./",
+      "skills": [
+        "./"
+      ]
+    }
+  ]
+}
