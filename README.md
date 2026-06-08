@@ -119,12 +119,20 @@ python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 
 ## Themes
 
-| Theme | Style | Preview |
-|-------|-------|---------|
-| `modern` | Clean, contemporary | ![Modern](previews/modern.png) |
-| `classic` | Traditional, formal | ![Classic](previews/classic.png) |
-| `minimal` | Content-focused | ![Minimal](previews/minimal.png) |
-| `creative` | Bold, colorful | ![Creative](previews/creative.png) |
+<table>
+  <tr>
+    <td align="center"><b>Modern</b><br>Clean, contemporary</td>
+    <td align="center"><b>Classic</b><br>Traditional, formal</td>
+    <td align="center"><b>Minimal</b><br>Content-focused</td>
+    <td align="center"><b>Creative</b><br>Bold, colorful</td>
+  </tr>
+  <tr>
+    <td><img src="previews/modern.png" width="200" alt="Modern" /></td>
+    <td><img src="previews/classic.png" width="200" alt="Classic" /></td>
+    <td><img src="previews/minimal.png" width="200" alt="Minimal" /></td>
+    <td><img src="previews/creative.png" width="200" alt="Creative" /></td>
+  </tr>
+</table>
 
 ## Languages
 
