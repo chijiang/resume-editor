@@ -24,7 +24,16 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 
 ### OpenClaw
 
-**Option 1: Install from GitHub**
+**Option 1: Install from ClawHub (recommended)**
+
+```bash
+openclaw skills install resume-editor
+```
+
+The published ClawHub page for this skill is:
+`https://clawhub.ai/chijiang/resume-editor`
+
+**Option 2: Install from GitHub**
 
 ```bash
 openclaw skills install git:chijiang/resume-editor
@@ -32,7 +41,7 @@ openclaw skills install git:chijiang/resume-editor
 
 This matches OpenClaw's documented `git:` source install format.
 
-**Option 2: Manual workspace install**
+**Option 3: Manual workspace install**
 
 ```bash
 mkdir -p ~/.openclaw/workspace/skills
