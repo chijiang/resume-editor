@@ -4,57 +4,19 @@ Generate styled HTML resume from JSON data.
 Supports multiple themes and languages.
 """
 
+import argparse
+import html as html_escape
 import json
 import sys
-import argparse
 from pathlib import Path
-import html as html_escape
 
-# Section titles in multiple languages
-SECTION_TITLES = {
-    "en": {
-        "summary": "Professional Summary",
-        "experience": "Work Experience",
-        "education": "Education",
-        "projects": "Projects",
-        "skills": "Skills"
-    },
-    "zh": {
-        "summary": "个人简介",
-        "experience": "工作经历",
-        "education": "教育背景",
-        "projects": "项目经历",
-        "skills": "技能"
-    },
-    "ja": {
-        "summary": "プロフィール",
-        "experience": "職歴",
-        "education": "学歴",
-        "projects": "プロジェクト",
-        "skills": "スキル"
-    },
-    "fr": {
-        "summary": "Profil Professionnel",
-        "experience": "Expérience Professionnelle",
-        "education": "Formation",
-        "projects": "Projets",
-        "skills": "Compétences"
-    },
-    "de": {
-        "summary": "Zusammenfassung",
-        "experience": "Berufserfahrung",
-        "education": "Ausbildung",
-        "projects": "Projekte",
-        "skills": "Fähigkeiten"
-    },
-    "es": {
-        "summary": "Resumen Profesional",
-        "experience": "Experiencia Laboral",
-        "education": "Educación",
-        "projects": "Proyectos",
-        "skills": "Habilidades"
-    }
-}
+from resume_utils import (
+    SUPPORTED_LANGUAGES,
+    SUPPORTED_THEMES,
+    get_localized_text,
+    normalize_resume_data,
+    validate_resume_data,
+)
 
 
 def escape_text(text):
@@ -76,39 +38,9 @@ def load_css(css_path):
         return f.read()
 
 
-def validate_resume_data(resume_data):
-    """Validate resume data structure and required fields."""
-    errors = []
-
-    # Check required top-level fields
-    required_fields = ["personal"]
-    for field in required_fields:
-        if field not in resume_data:
-            errors.append(f"Missing required field: {field}")
-
-    # Validate personal info
-    if "personal" in resume_data:
-        personal = resume_data["personal"]
-        if not personal.get("name"):
-            errors.append("Missing name in personal info")
-
-        # Validate email format
-        email = personal.get("email", "")
-        if email and not is_valid_email(email):
-            errors.append(f"Invalid email format: {email}")
-
-    return errors
-
-
-def is_valid_email(email):
-    """Basic email validation."""
-    import re
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
-
-
 def build_edit_script(resume_data, language):
     """Build inline JS/CSS for edit mode. Returns HTML string to inject before </body>."""
+    labels = get_localized_text(language)
     json_snapshot = json.dumps(resume_data, ensure_ascii=False, indent=2)
     # Escape for safe embedding in HTML
     json_snapshot_escaped = json_snapshot.replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
@@ -312,12 +244,12 @@ body.resume-editing li .edit-remove-btn:hover {{
     }}
 }}
 </style>
-<button id="resume-edit-btn" title="Edit resume">&#9998;</button>
+<button id="resume-edit-btn" title="{escape_text(labels["edit_resume"])}">&#9998;</button>
 <div id="resume-edit-toolbar">
-    <span class="toolbar-label">Editing Resume</span>
+    <span class="toolbar-label">{escape_text(labels["editing_resume"])}</span>
     <div class="toolbar-actions">
-        <button class="toolbar-btn-copy" id="edit-copy-btn">Copy JSON</button>
-        <button class="toolbar-btn-cancel" id="edit-cancel-btn">Done</button>
+        <button class="toolbar-btn-copy" id="edit-copy-btn">{escape_text(labels["copy_json"])}</button>
+        <button class="toolbar-btn-cancel" id="edit-cancel-btn">{escape_text(labels["done"])}</button>
     </div>
 </div>
 <div id="resume-edit-toast"></div>
@@ -390,11 +322,10 @@ body.resume-editing li .edit-remove-btn:hover {{
 
     function enterEditMode() {{
         isEditing = true;
-        originalHtml = document.querySelector('.resume-container').innerHTML;
         document.body.classList.add('resume-editing');
         toolbar.classList.add('visible');
         btn.innerHTML = '&#10005;';
-        btn.title = 'Exit edit mode';
+        btn.title = {json.dumps(labels["exit_edit_mode"], ensure_ascii=False)};
 
         EDITABLE_SELECTORS.forEach(function(sel) {{
             var els = document.querySelectorAll(sel);
@@ -425,7 +356,7 @@ body.resume-editing li .edit-remove-btn:hover {{
         document.body.classList.remove('resume-editing');
         toolbar.classList.remove('visible');
         btn.innerHTML = '&#9998;';
-        btn.title = 'Edit resume';
+        btn.title = {json.dumps(labels["edit_resume"], ensure_ascii=False)};
 
         EDITABLE_SELECTORS.forEach(function(sel) {{
             var els = document.querySelectorAll(sel);
@@ -448,11 +379,11 @@ body.resume-editing li .edit-remove-btn:hover {{
             var addBtn = document.createElement('button');
             addBtn.className = 'edit-add-btn';
             addBtn.textContent = '+';
-            addBtn.title = 'Add item';
+            addBtn.title = {json.dumps(labels["add_item"], ensure_ascii=False)};
             addBtn.addEventListener('click', function() {{
                 var li = document.createElement('li');
                 li.setAttribute('contenteditable', 'true');
-                li.textContent = 'New item';
+                li.textContent = {json.dumps(labels["new_item"], ensure_ascii=False)};
                 attachRemoveBtn(li);
                 ul.appendChild(li);
                 li.focus();
@@ -473,7 +404,7 @@ body.resume-editing li .edit-remove-btn:hover {{
         var rmBtn = document.createElement('button');
         rmBtn.className = 'edit-remove-btn';
         rmBtn.textContent = '\\u00d7';
-        rmBtn.title = 'Remove item';
+        rmBtn.title = {json.dumps(labels["remove_item"], ensure_ascii=False)};
         rmBtn.addEventListener('click', function(e) {{
             e.stopPropagation();
             li.remove();
@@ -668,7 +599,7 @@ body.resume-editing li .edit-remove-btn:hover {{
 
         if (navigator.clipboard && navigator.clipboard.writeText) {{
             navigator.clipboard.writeText(jsonStr).then(function() {{
-                showToast('JSON copied to clipboard!', 2500);
+                showToast({json.dumps(labels["json_copied"], ensure_ascii=False)}, 2500);
             }}).catch(function() {{
                 fallbackCopy(jsonStr);
             }});
@@ -681,7 +612,7 @@ body.resume-editing li .edit-remove-btn:hover {{
         console.log('=== RESUME JSON ===');
         console.log(jsonStr);
         console.log('=== END RESUME JSON ===');
-        showToast('JSON printed to browser console (F12)', 3500);
+        showToast({json.dumps(labels["json_console"], ensure_ascii=False)}, 3500);
     }}
 
     btn.addEventListener('click', toggleEditMode);
@@ -696,6 +627,9 @@ def generate_resume_html(resume_data, theme="modern", language="en", editable=Fa
     """
     Generate HTML resume from JSON data with specified theme and language.
     """
+    theme = theme if theme in SUPPORTED_THEMES else "modern"
+    language = language if language in SUPPORTED_LANGUAGES else "en"
+
     # Load template and CSS
     skill_dir = Path(__file__).parent.parent
     template_path = skill_dir / "assets" / "templates" / f"{theme}.html"
@@ -794,8 +728,8 @@ def build_header(personal, language):
 
 def build_summary(summary, language):
     """Build summary section."""
-    titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
-    title = titles.get("summary", "Professional Summary")
+    labels = get_localized_text(language)
+    title = labels["summary"]
     return f"""
 <section class="resume-section" data-section="summary">
     <h2 class="section-title">{title}</h2>
@@ -806,8 +740,8 @@ def build_summary(summary, language):
 
 def build_experience(experience, language):
     """Build experience section."""
-    titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
-    title = titles.get("experience", "Work Experience")
+    labels = get_localized_text(language)
+    title = labels["experience"]
     html = f'<section class="resume-section" data-section="experience"><h2 class="section-title">{title}</h2>'
 
     for exp in experience:
@@ -854,8 +788,8 @@ def build_experience(experience, language):
 
 def build_education(education, language):
     """Build education section."""
-    titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
-    title = titles.get("education", "Education")
+    labels = get_localized_text(language)
+    title = labels["education"]
     html = f'<section class="resume-section" data-section="education"><h2 class="section-title">{title}</h2>'
 
     for edu in education:
@@ -876,11 +810,11 @@ def build_education(education, language):
         </div>
     </div>
     {f'<div class="location">{location}</div>' if location else ''}
-    {f'<div class="gpa">GPA: {gpa}</div>' if gpa else ''}
+    {f'<div class="gpa">{escape_text(labels["gpa"])}: {gpa}</div>' if gpa else ''}
 """
 
         if honors:
-            html += "<div class='honors'><strong>Honors:</strong> " + ", ".join([escape_text(h) for h in honors]) + "</div>"
+            html += f"<div class='honors'><strong>{escape_text(labels['honors'])}:</strong> " + ", ".join([escape_text(h) for h in honors]) + "</div>"
 
         html += "</div>"
 
@@ -890,8 +824,8 @@ def build_education(education, language):
 
 def build_projects(projects, language):
     """Build projects section."""
-    titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
-    title = titles.get("projects", "Projects")
+    labels = get_localized_text(language)
+    title = labels["projects"]
     html = f'<section class="resume-section" data-section="projects"><h2 class="section-title">{title}</h2>'
 
     for proj in projects:
@@ -913,7 +847,7 @@ def build_projects(projects, language):
 
         if technologies:
             escaped_techs = [escape_text(t) for t in technologies]
-            html += f"<div class='technologies'><strong>Technologies:</strong> {', '.join(escaped_techs)}</div>"
+            html += f"<div class='technologies'><strong>{escape_text(labels['technologies'])}:</strong> {', '.join(escaped_techs)}</div>"
 
         if description:
             html += f"<p class='project-description'>{description}</p>"
@@ -932,8 +866,8 @@ def build_projects(projects, language):
 
 def build_skills(skills, language):
     """Build skills section."""
-    titles = SECTION_TITLES.get(language, SECTION_TITLES["en"])
-    title = titles.get("skills", "Skills")
+    labels = get_localized_text(language)
+    title = labels["skills"]
     html = f'<section class="resume-section" data-section="skills"><h2 class="section-title">{title}</h2>'
 
     for category, skill_list in skills.items():
@@ -962,9 +896,9 @@ def main():
     parser = argparse.ArgumentParser(description='Generate HTML resume from JSON data')
     parser.add_argument('resume_json', help='Path to resume JSON file')
     parser.add_argument('output_html', help='Path to output HTML file')
-    parser.add_argument('--theme', default='modern', choices=['modern', 'classic', 'minimal', 'creative'],
+    parser.add_argument('--theme', default='modern', choices=SUPPORTED_THEMES,
                         help='Resume theme (default: modern)')
-    parser.add_argument('--lang', default='en', choices=['en', 'zh', 'ja', 'fr', 'de', 'es'],
+    parser.add_argument('--lang', default='en', choices=SUPPORTED_LANGUAGES,
                         help='Language (default: en)')
     parser.add_argument('--editable', action='store_true',
                         help='Add inline editing capabilities to the HTML output')
@@ -985,6 +919,8 @@ def main():
     except UnicodeDecodeError:
         print(f"Error: Failed to read file. Please ensure it's UTF-8 encoded: {args.resume_json}")
         sys.exit(1)
+
+    resume_data = normalize_resume_data(resume_data)
 
     # Validate resume data
     validation_errors = validate_resume_data(resume_data)

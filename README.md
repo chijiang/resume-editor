@@ -11,6 +11,7 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 - **4 Themes** — Modern, Classic, Minimal, Creative
 - **6 Languages** — English, 中文, 日本語, Français, Deutsch, Español
 - **Dual Export** — Styled HTML + print-ready PDF (A4)
+- **Editable Review Loop** — Browser-based preview and edit before final export
 - **Local-first** — Everything runs locally, no data leaves your machine
 
 ## Prerequisites
@@ -23,57 +24,65 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 
 ### OpenClaw
 
-**Option 1: Install from ClawHub (recommended)**
+**Option 1: Install from GitHub**
 
 ```bash
-openclaw skills install chijiang/resume-editor
+openclaw skills install git:chijiang/resume-editor
 ```
 
-**Option 2: Manual install**
+This matches OpenClaw's documented `git:` source install format.
+
+**Option 2: Manual workspace install**
 
 ```bash
-cd ~/.openclaw/workspace/skills
-git clone https://github.com/chijiang/resume-editor.git resume-builder
+mkdir -p ~/.openclaw/workspace/skills
+git clone https://github.com/chijiang/resume-editor.git ~/.openclaw/workspace/skills/resume-builder
 ```
 
-Restart your session to activate.
+OpenClaw's documented workspace skill path is `~/.openclaw/workspace/skills/<skill>/SKILL.md`.
 
 ### Claude Code
 
-**Option 1: Install as a plugin (recommended)**
-
-In a Claude Code session, run:
-
-```
-/plugin marketplace add chijiang/resume-editor
-```
-
-Then select `resume-builder` to install.
-
-**Option 2: Global install**
+**Option 1: Global skill install**
 
 ```bash
 mkdir -p ~/.claude/skills
 git clone https://github.com/chijiang/resume-editor.git ~/.claude/skills/resume-builder
 ```
 
-Restart your session to activate.
+Restart your Claude Code session to activate it.
+
+**Option 2: Install via plugin marketplace**
+
+In a Claude Code session, run:
+
+```
+/plugin marketplace add chijiang/resume-editor
+/plugin install resume-builder@resume-editor
+/reload-plugins
+```
+
+This repo includes a `.claude-plugin/marketplace.json`, so the marketplace install path can reference the `resume-builder` plugin from the `resume-editor` marketplace.
 
 ### OpenAI Codex
 
-Clone into your project, then reference in `AGENTS.md`:
+Codex discovers skills from `.agents/skills` in the current repo, or from `~/.agents/skills` for user-wide install.
+
+**Option 1: Project-scoped install**
 
 ```bash
-git clone https://github.com/chijiang/resume-editor.git resume-builder
+mkdir -p .agents/skills
+git clone https://github.com/chijiang/resume-editor.git .agents/skills/resume-builder
 ```
 
-Add to `AGENTS.md` in your project root:
+**Option 2: User-scoped install**
 
-```markdown
-## Resume Builder Skill
-- Instructions: Follow `resume-builder/SKILL.md`
-- Scripts: `resume-builder/scripts/`
+```bash
+mkdir -p ~/.agents/skills
+git clone https://github.com/chijiang/resume-editor.git ~/.agents/skills/resume-builder
 ```
+
+No `AGENTS.md` wiring is required for Codex skill discovery. You can still use `AGENTS.md` for repo-specific working rules, but the skill itself should live under a discovered `.agents/skills` path.
 
 ## Usage
 
@@ -93,10 +102,13 @@ If you prefer to run scripts directly without an AI agent:
 
 ```bash
 # Generate HTML from example data
-python3 scripts/generate_html.py --theme modern --lang en references/example-resume.json output.html
+python3 scripts/export_resume.py --format html --theme modern --lang en references/example-resume.json output.html
 
 # Convert to PDF
-python3 scripts/generate_pdf.py output.html output.pdf
+python3 scripts/export_resume.py --format pdf --theme modern --lang en references/example-resume.json output.pdf
+
+# Generate editable review HTML first
+python3 scripts/export_resume.py --format html --theme modern --lang en --editable references/example-resume.json editable-output.html
 
 # Import from existing PDF
 python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
@@ -167,20 +179,30 @@ python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 }
 ```
 
-> Only `personal.name` is required. All other fields are optional.
+> Only `personal.name` is required. All other fields are optional. The canonical machine-readable schema is in [`references/resume-schema.json`](references/resume-schema.json).
 
 ## Example
 
 A complete example is in [`references/example-resume.json`](references/example-resume.json). Try it:
 
 ```bash
-python3 scripts/generate_html.py \
-  --theme modern --lang en \
+python3 scripts/export_resume.py \
+  --format html --theme modern --lang en \
   references/example-resume.json \
   example-output.html
 ```
 
 Open `example-output.html` in a browser to preview.
+
+## Recommended Journey
+
+For meaningful edits or imported resumes, use this flow:
+
+1. Import or create `resume.json`
+2. Generate an editable HTML preview
+3. Review and refine content visually
+4. Copy the updated JSON back into your working file
+5. Export a final non-editable HTML or PDF
 
 ## Project Structure
 
@@ -190,11 +212,14 @@ resume-editor/
 ├── plugin.json               # Plugin metadata
 ├── README.md                 # This file
 ├── references/
-│   └── example-resume.json   # Example resume (fictional data)
+│   ├── example-resume.json   # Example resume (fictional data)
+│   └── resume-schema.json    # Canonical resume schema
 ├── scripts/
+│   ├── export_resume.py      # Unified JSON → HTML/PDF export
 │   ├── extract_from_pdf.py   # PDF → JSON
 │   ├── generate_html.py      # JSON → HTML (multi-theme, multi-language)
-│   └── generate_pdf.py       # HTML → PDF
+│   ├── generate_pdf.py       # HTML → PDF
+│   └── resume_utils.py       # Shared schema/localization helpers
 ├── assets/
 │   ├── css/                  # Theme stylesheets
 │   │   ├── modern.css

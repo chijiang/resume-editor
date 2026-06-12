@@ -9,7 +9,7 @@ description: 'Build, edit, and format professional resumes with PDF import, styl
 
 Build professional resumes with AI-assisted content management, supporting PDF import/export, HTML styling, and multi-language output.
 
-**Resume data structure and JSON schema**: See `references/data-structure.md`
+**Canonical resume schema**: See `references/resume-schema.json` and `references/data-structure.md`
 **Troubleshooting**: See `references/troubleshooting.md`
 **Customization (themes, languages)**: See `references/customization.md`
 
@@ -23,6 +23,8 @@ Build professional resumes with AI-assisted content management, supporting PDF i
 
 Save resume JSON to `resume.json` in the current working directory unless the user specifies another path. When importing from PDF, save the extracted JSON alongside the source file.
 
+Always keep the working file in the canonical schema used by the renderer. If imported data is rough or partially parsed, normalize it before presenting edits or exporting.
+
 ## Workflow
 
 ### 1. Initial Import (if user provides existing PDF)
@@ -33,7 +35,11 @@ The `scripts/extract_from_pdf.py` script does basic text extraction, but it prod
 python3 "$SKILL_DIR/scripts/extract_from_pdf.py" input.pdf output.json
 ```
 
-After extraction (by any method), present the structured data to the user for review and ask if they want any modifications.
+After extraction (by any method), do not export immediately. First:
+
+1. Normalize the data into the canonical schema.
+2. Identify obvious gaps, duplicated bullets, or fields that landed as rough text.
+3. Present the structured data to the user for review and ask what should be corrected or expanded.
 
 ### 2. Content Management
 
@@ -45,6 +51,12 @@ When adding or editing sections, gather complete information through natural con
 
 Keep asking follow-up questions if responses are brief or unclear. The goal is a complete, well-structured entry — not a minimal one.
 
+When the user requests meaningful edits, especially after import, prefer an edit-review-export flow:
+
+1. Update `resume.json`.
+2. Generate an editable HTML preview when the user will likely want to iterate visually.
+3. Review the resulting content for clarity, grammar, consistency, and scannability before final export.
+
 **Important separation principle:**
 - **Work Experience** should stay high-level: job responsibilities at a business level, scope (team size, industry sectors), leadership and business impact.
 - **Projects** should go deep on technical specifics: technologies, architecture, quantified achievements with metrics.
@@ -54,14 +66,16 @@ This separation makes the resume scannable for HR while providing depth for engi
 ### 3. Export
 
 1. Confirm format (HTML or PDF), theme, and language with the user.
-2. Generate HTML:
+2. Use the unified export script:
    ```bash
-   python3 "$SKILL_DIR/scripts/generate_html.py" --theme modern --lang en resume.json output.html
+   python3 "$SKILL_DIR/scripts/export_resume.py" --format html --theme modern --lang en resume.json output.html
    ```
-3. If PDF, also run:
+3. For PDF export, use:
    ```bash
-   python3 "$SKILL_DIR/scripts/generate_pdf.py" output.html output.pdf
+   python3 "$SKILL_DIR/scripts/export_resume.py" --format pdf --theme modern --lang en resume.json output.pdf
    ```
+
+The PDF flow always renders a clean HTML intermediary first, then converts it to PDF. Do not use editable HTML as the final PDF source.
 
 **Available themes:** `modern`, `classic`, `minimal`, `creative`
 **Available languages:** `en`, `zh`, `ja`, `fr`, `de`, `es`
@@ -71,23 +85,26 @@ This separation makes the resume scannable for HR while providing depth for engi
 For collaborative refinement with the user, generate an editable HTML that includes inline editing capabilities:
 
 ```bash
-python3 "$SKILL_DIR/scripts/generate_html.py" --theme modern --lang en --editable resume.json output.html
+python3 "$SKILL_DIR/scripts/export_resume.py" --format html --theme modern --lang en --editable resume.json output.html
 ```
 
 **Workflow:**
 
 1. Generate the editable HTML and tell the user to open it in a browser.
-2. Guide the user: "Hover over the top-right corner to reveal the edit button (pencil icon), click it to enter edit mode. You can directly modify any text in the resume."
+2. Guide the user explicitly:
+   - Hover near the top-right corner to reveal the pencil button.
+   - Click it to enter edit mode.
+   - Edit text directly, add/remove bullet items where controls appear, then click the JSON copy button in the toolbar.
 3. The user edits content in-browser — all text fields, list items (add/remove with +/- buttons), and skill lists are editable.
-4. When done, the user clicks "Copy JSON" in the toolbar to copy the updated resume JSON to clipboard.
+4. When done, the user clicks the JSON copy button in the toolbar to copy the updated resume JSON to clipboard.
 5. The user pastes the JSON back to you (or if you have Playwright access, you can extract it directly from the page).
-6. **Final review**: Check the updated content for grammar, spelling, consistency, and formatting. Suggest corrections if needed.
+6. **Final review**: Check the updated content for grammar, spelling, consistency, formatting, and section separation quality. Suggest corrections if needed.
 7. Apply any corrections to `resume.json`.
-8. Generate the final, non-editable version for export (HTML or PDF) using the standard export command (without `--editable`).
+8. Generate the final, non-editable version for export (HTML or PDF) using the standard export command without `--editable`.
 
 **Notes:**
 - Edit UI is hidden during print/PDF export, so the visual output is unaffected.
-- The toolbar provides "Copy JSON" (copies to clipboard) with a fallback to browser console.
+- The toolbar label and copy button text are localized with the selected output language; tell the user to use the top toolbar action that copies JSON.
 - If you have Playwright access, you can evaluate `JSON.stringify(window.extractToJson ? extractToJson() : 'N/A')` to read edits programmatically.
 
 ## Content Best Practices

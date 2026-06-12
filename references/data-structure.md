@@ -2,6 +2,8 @@
 
 Resume data is maintained in structured JSON format. The `personal.name` field is required; all other fields are optional.
 
+The canonical machine-readable schema is in `references/resume-schema.json`. Keep working files aligned to that schema before export.
+
 ```json
 {
   "personal": {
@@ -10,8 +12,7 @@ Resume data is maintained in structured JSON format. The `personal.name` field i
     "phone": "+86 138-0000-0000",
     "location": "City, Country",
     "linkedin": "https://linkedin.com/in/...",
-    "github": "https://github.com/...",
-    "languages": ["English", "Chinese", "French"]
+    "github": "https://github.com/..."
   },
   "summary": "Professional summary...",
   "education": [
@@ -52,6 +53,11 @@ Resume data is maintained in structured JSON format. The `personal.name` field i
   }
 }
 ```
+
+## Notes
+
+- Store spoken languages under `skills.languages`, not `personal.languages`.
+- Imported PDFs may initially produce rough entries or raw text. Normalize these into canonical fields before final export.
 
 ## Work File Convention
 

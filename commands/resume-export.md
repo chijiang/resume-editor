@@ -30,14 +30,11 @@ Export a resume JSON file to a styled HTML or PDF document.
 2. Determine the output path:
    - Use `$output` if provided
    - Otherwise use `resume_output.html` (or `.pdf` if format is pdf)
-3. Run the generation script:
+3. Run the unified export script:
    ```bash
-   python3 "$SKILL_DIR/scripts/generate_html.py" --theme "$theme" --lang "$lang" $([[ "$editable" == "true" ]] && echo "--editable") "$input" "$output_path"
+   python3 "$SKILL_DIR/scripts/export_resume.py" --format "$format" --theme "$theme" --lang "$lang" $([[ "$editable" == "true" ]] && echo "--editable") "$input" "$output_path"
    ```
-4. If `$format` is `pdf`, also run:
-   ```bash
-   python3 "$SKILL_DIR/scripts/generate_pdf.py" "$output_path" "${output_path%.html}.pdf"
-   ```
+4. If the user is still iterating on content, prefer `editable=true` with HTML first, review the returned JSON, then run a final non-editable export.
 5. Report the generated file path to the user
 
 ## Notes
@@ -45,4 +42,5 @@ Export a resume JSON file to a styled HTML or PDF document.
 - `$SKILL_DIR` resolves to the directory containing this skill's SKILL.md
 - Available themes: modern, classic, minimal, creative
 - Available languages: en, zh, ja, fr, de, es
+- PDF export renders a clean intermediary HTML before creating the final PDF
 - PDF export requires pdfkit or playwright installed
