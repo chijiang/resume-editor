@@ -17,7 +17,7 @@ Build professional resumes with AI-assisted content management, supporting PDF i
 
 - **HTML generation**: Python 3 (no extra deps)
 - **PDF import**: `pip install pymupdf`
-- **PDF export** (either one): `pip install pdfkit && brew install wkhtmltopdf` OR `pip install playwright && playwright install chromium`
+- **PDF export** (either one; Playwright preferred for faithful CSS rendering): `pip install playwright && playwright install chromium` OR `pip install pdfkit && brew install wkhtmltopdf`
 
 ## Work File Convention
 
@@ -50,6 +50,31 @@ When adding or editing sections, gather complete information through natural con
 **For Projects:** name, role, period, technologies, description, key achievements.
 
 Keep asking follow-up questions if responses are brief or unclear. The goal is a complete, well-structured entry — not a minimal one.
+
+#### Portrait photo (optional, ask before adding)
+
+Built-in themes hide `personal.photo` by default — most regions (US, UK, Canada, Australia, much of the EU) expect resumes **without** a photo and may discard photo-bearing resumes for legal reasons (anti-discrimination). Do **not** add a photo unprompted.
+
+Ask about a photo only when the context suggests one is expected, for example:
+- Job markets where photos are conventional: mainland China, Hong Kong, Taiwan, Japan, South Korea, much of Southeast Asia, Middle East, Latin America
+- Academic / research CVs in some fields, performing-arts applications, certain consulting or sales roles
+- The user explicitly says the resume is for a market or role where photos are expected
+
+When in doubt, ask once: *"Do you want a portrait on this resume? Some markets expect one, others penalize it."*
+
+If the user wants a photo:
+1. Require them to provide the image themselves. Accept a **file path**, **http(s) URL**, or **data: base64 URI**. Do not invent, fetch, or generate an image.
+2. Store the value in `personal.photo`. Relative paths resolve against the HTML output location, so the user should keep the photo next to the generated HTML (or use an absolute path / URL / data URI).
+3. Photo rendering is **opt-in per theme**. Built-in themes don't display it; scaffold a custom theme with `scripts/create_theme.py` and enable it:
+   ```css
+   .resume-photo {
+       display: block;
+       width: 96px; height: 96px;
+       object-fit: cover;
+       border-radius: 50%;   /* or 4px for a square headshot */
+   }
+   ```
+4. Warn the user before they ship a photo resume to a market that penalizes it.
 
 When the user requests meaningful edits, especially after import, prefer an edit-review-export flow:
 
@@ -94,6 +119,8 @@ The PDF flow always renders a clean HTML intermediary first, then converts it to
 **Custom themes:** Any folder under `user-themes/<name>/` with a `style.css`, or a direct path to a custom theme directory
 **Available languages:** `en`, `zh`, `ja`, `fr`, `de`, `es`
 
+> **`--lang` only switches UI labels** (section titles like "Work Experience", the edit-mode toolbar strings, and the `html lang` attribute). It does not translate resume body content. When a user asks to "translate my resume to X", translate the JSON content yourself first, then export with `--lang X` so labels and content stay consistent.
+
 ### 4. Interactive Edit Mode (Edit-Review-Export)
 
 For collaborative refinement with the user, generate an editable HTML that includes inline editing capabilities:
@@ -135,3 +162,6 @@ python3 "$SKILL_DIR/scripts/export_resume.py" --format html --theme modern --lan
 | `scripts/extract_from_pdf.py` | Extract text from PDF resumes (fallback — prefer AI-based parsing) |
 | `scripts/generate_html.py` | Generate styled HTML from resume JSON |
 | `scripts/generate_pdf.py` | Convert HTML resume to PDF |
+| `scripts/export_resume.py` | Unified entrypoint for HTML/PDF export |
+| `scripts/create_theme.py` | Scaffold a reusable custom theme |
+| `scripts/validate_resume.py` | Validate a resume JSON against the canonical schema |

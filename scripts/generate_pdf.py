@@ -85,22 +85,23 @@ def main():
 
     success = False
 
-    # Try pdfkit first (faster, simpler)
-    if HAS_PDFKIT:
-        try:
-            print("Using pdfkit (wkhtmltopdf)...")
-            success = convert_with_pdfkit(args.html_file, args.output_pdf)
-        except Exception as e:
-            print(f"pdfkit failed: {e}")
-            success = False
-
-    # Fallback to Playwright (better rendering)
-    if not success and HAS_PLAYWRIGHT:
+    # Prefer Playwright — modern Chromium rendering matches the on-screen HTML
+    # much more faithfully than wkhtmltopdf (flexbox, gap, backdrop-filter, etc.).
+    if HAS_PLAYWRIGHT:
         try:
             print("Using Playwright (Chromium)...")
             success = convert_with_playwright(args.html_file, args.output_pdf)
         except Exception as e:
             print(f"Playwright failed: {e}")
+            success = False
+
+    # Fallback to pdfkit (lighter dependency, but older box-model renderer)
+    if not success and HAS_PDFKIT:
+        try:
+            print("Falling back to pdfkit (wkhtmltopdf)...")
+            success = convert_with_pdfkit(args.html_file, args.output_pdf)
+        except Exception as e:
+            print(f"pdfkit failed: {e}")
             success = False
 
     if not success:

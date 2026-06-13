@@ -19,7 +19,7 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 
 - **Python 3.7+** is required for resume generation scripts
 - **Optional**: `pip install pymupdf` for PDF import
-- **Optional**: `pip install pdfkit && brew install wkhtmltopdf` OR `pip install playwright && playwright install chromium` for PDF export
+- **Optional**: `pip install playwright && playwright install chromium` (recommended) OR `pip install pdfkit && brew install wkhtmltopdf` for PDF export
 
 ## Installation
 
@@ -128,6 +128,9 @@ python3 scripts/export_resume.py --format html --theme editorial --lang en refer
 
 # Import from existing PDF
 python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
+
+# Validate a resume JSON against the canonical schema
+python3 scripts/validate_resume.py resume.json
 ```
 
 
@@ -152,7 +155,8 @@ python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
     "phone": "+86 138-0000-0000",
     "location": "City, Country",
     "linkedin": "https://linkedin.com/in/yourprofile",
-    "github": "https://github.com/yourusername"
+    "github": "https://github.com/yourusername",
+    "photo": "photo.jpg"
   },
   "summary": "A brief professional summary...",
   "education": [
@@ -243,7 +247,8 @@ resume-editor/
 │   ├── extract_from_pdf.py   # PDF → JSON
 │   ├── generate_html.py      # JSON → HTML (multi-theme, multi-language)
 │   ├── generate_pdf.py       # HTML → PDF
-│   └── resume_utils.py       # Shared schema/localization helpers
+│   ├── resume_utils.py       # Shared schema/localization helpers
+│   └── validate_resume.py    # Validate a resume JSON against the schema
 ├── assets/
 │   ├── css/                  # Theme stylesheets
 │   │   ├── modern.css
@@ -252,6 +257,11 @@ resume-editor/
 │   │   └── creative.css
 │   └── templates/            # HTML wrapper template
 │       └── base.html
+├── previews/                 # Pre-rendered theme samples (regenerable from references/example-resume.json)
+│   ├── modern.html
+│   ├── classic.html
+│   ├── minimal.html
+│   └── creative.html
 └── commands/
     └── resume-export.md      # Slash command definition
 ```
@@ -263,6 +273,7 @@ resume-editor/
 - **Quantify** — "Improved efficiency by 30%" > "Improved efficiency"
 - **Action verbs** — Led, Architected, Built, Designed, Optimized
 - **Proofread** — Typos kill first impressions
+- **Photo** — Optional via `personal.photo` (path, URL, or data URI). Hidden by default in all built-in themes; enable it in a custom theme's CSS. Only include a photo when the target market expects one — many regions (US/UK/Canada/Australia/much of EU) penalize or reject photo resumes.
 
 ## License
 

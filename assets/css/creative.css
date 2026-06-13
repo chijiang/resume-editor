@@ -241,9 +241,16 @@ body {
 
 /* Print */
 @media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
     body {
         background: white;
         padding: 0;
+        font-size: 10.5pt;
+        line-height: 1.4;
     }
 
     .resume-container {
@@ -253,6 +260,82 @@ body {
     .resume-header {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        padding: 16px 20px;
+    }
+
+    .resume-header .name {
+        font-size: 1.7em;
+        margin-bottom: 4px;
+    }
+
+    .resume-header .contact-info {
+        font-size: 0.82em;
+        gap: 3px 12px;
+    }
+
+    .resume-section {
+        margin-bottom: 0;
+        padding: 12px 20px;
+    }
+
+    .section-title {
+        font-size: 1.0em;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .experience-item,
+    .education-item,
+    .project-item {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .company-name,
+    .institution,
+    .project-name {
+        font-size: 1.02em;
+    }
+
+    .position,
+    .degree,
+    .role {
+        font-size: 0.9em;
+    }
+
+    .experience-description,
+    .project-description {
+        font-size: 0.88em;
+        line-height: 1.45;
+        margin: 4px 0;
+    }
+
+    .responsibilities,
+    .achievements {
+        margin-top: 4px;
+    }
+
+    .responsibilities li,
+    .achievements li {
+        font-size: 0.88em;
+        line-height: 1.4;
+        margin-bottom: 2px;
+    }
+
+    .technologies,
+    .gpa,
+    .honors,
+    .location {
+        font-size: 0.82em;
+    }
+
+    .skill-list {
+        font-size: 0.88em;
+        line-height: 1.5;
     }
 }
 
@@ -303,4 +386,9 @@ body {
 }
 .skill-list .skill-item:last-child::after {
     content: "";
+}
+
+/* Photo is opt-in. Built-in themes hide it; enable in a custom theme via display: block. */
+.resume-photo {
+    display: none;
 }

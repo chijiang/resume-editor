@@ -12,7 +12,8 @@ The canonical machine-readable schema is in `references/resume-schema.json`. Kee
     "phone": "+86 138-0000-0000",
     "location": "City, Country",
     "linkedin": "https://linkedin.com/in/...",
-    "github": "https://github.com/..."
+    "github": "https://github.com/...",
+    "photo": "photo.jpg"
   },
   "summary": "Professional summary...",
   "education": [
@@ -57,6 +58,7 @@ The canonical machine-readable schema is in `references/resume-schema.json`. Kee
 ## Notes
 
 - Store spoken languages under `skills.languages`, not `personal.languages`.
+- `personal.photo` is optional and hidden by default in all built-in themes. Provide a file path (relative to the HTML output location), an http(s) URL, or a data: base64 URI. Enable rendering in a custom theme via CSS (`.resume-photo { display: block; ... }`). Only include a photo when the target market expects one — many regions penalize photo resumes.
 - Imported PDFs may initially produce rough entries or raw text. Normalize these into canonical fields before final export.
 
 ## Work File Convention

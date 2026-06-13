@@ -165,7 +165,7 @@ TOP_LEVEL_DEFAULTS = {
     "skills": {},
 }
 
-PERSONAL_FIELDS = ["name", "email", "phone", "location", "linkedin", "github"]
+PERSONAL_FIELDS = ["name", "email", "phone", "location", "linkedin", "github", "photo"]
 EDUCATION_TEXT_FIELDS = ["institution", "degree", "period", "location", "gpa"]
 EXPERIENCE_TEXT_FIELDS = ["company", "position", "period", "location", "description"]
 PROJECT_TEXT_FIELDS = ["name", "role", "period", "description"]
@@ -181,14 +181,44 @@ def get_localized_text(language):
 
 
 def coerce_string(value):
-    """Coerce scalar values to stripped strings."""
-    if value is None:
+    """Coerce scalar values to stripped strings.
+
+    Booleans are dropped (returned as empty string) — a stray true/false in a
+    text field is almost always a JSON mistake, not intentional content.
+    """
+    if value is None or isinstance(value, bool):
         return ""
     if isinstance(value, str):
         return value.strip()
-    if isinstance(value, (int, float, bool)):
+    if isinstance(value, (int, float)):
         return str(value).strip()
     return ""
+
+
+def resolve_photo_src(photo_value, resume_json_path=None):
+    """Resolve a personal.photo value into an HTML img src.
+
+    - data:, http://, https://, file:// — returned as-is.
+    - Absolute filesystem path — converted to a file:// URL (local preview only).
+    - Relative path — returned as-is, so it resolves relative to the HTML's
+      location. This keeps the HTML portable: write the HTML next to the photo
+      (or deploy them together) and the relative reference works both from
+      file:// and http:// origins.
+    - Returns "" when the value is empty.
+    """
+    photo = coerce_string(photo_value)
+    if not photo:
+        return ""
+    lowered = photo.lower()
+    if lowered.startswith(("data:", "http://", "https://", "file://")):
+        return photo
+    if Path(photo).is_absolute():
+        try:
+            return Path(photo).expanduser().resolve().as_uri()
+        except Exception:
+            return photo
+    # Relative path — keep as-is for portability
+    return photo
 
 
 def normalize_skill_key(key):

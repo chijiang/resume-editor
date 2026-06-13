@@ -17,6 +17,7 @@ from resume_utils import (
     get_localized_text,
     normalize_resume_data,
     resolve_theme_assets,
+    resolve_photo_src,
     validate_resume_data,
     ensure_string_list,
 )
@@ -782,7 +783,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
 '''
 
 
-def generate_resume_html(resume_data, theme="modern", language="en", editable=False):
+def generate_resume_html(resume_data, theme="modern", language="en", editable=False, resume_json_path=None):
     """
     Generate HTML resume from JSON data with specified theme and language.
     """
@@ -797,7 +798,7 @@ def generate_resume_html(resume_data, theme="modern", language="en", editable=Fa
     css = load_css(css_path)
 
     # Build HTML content
-    html_content = build_sections(resume_data, language)
+    html_content = build_sections(resume_data, language, resume_json_path)
 
     # Build edit script payload if editable mode is enabled
     edit_payload = build_edit_script(resume_data, language) if editable else ""
@@ -811,13 +812,13 @@ def generate_resume_html(resume_data, theme="modern", language="en", editable=Fa
     return full_html
 
 
-def build_sections(resume_data, language):
+def build_sections(resume_data, language, resume_json_path=None):
     """Build HTML sections from resume data."""
     sidebar_sections = []
     main_sections = []
 
     # Header (Personal Info) — always in sidebar
-    sidebar_sections.append(build_header(resume_data.get("personal", {}), language))
+    sidebar_sections.append(build_header(resume_data.get("personal", {}), language, resume_json_path))
 
     # Summary
     if resume_data.get("summary"):
@@ -845,7 +846,7 @@ def build_sections(resume_data, language):
     return sidebar_html + "\n" + main_html
 
 
-def build_header(personal, language):
+def build_header(personal, language, resume_json_path=None):
     """Build header section with personal info."""
     name = escape_text(personal.get("name", "Your Name"))
     email = escape_text(personal.get("email", ""))
@@ -853,6 +854,7 @@ def build_header(personal, language):
     location = escape_text(personal.get("location", ""))
     linkedin = escape_text(personal.get("linkedin", ""))
     github = escape_text(personal.get("github", ""))
+    photo_src = resolve_photo_src(personal.get("photo", ""), resume_json_path)
 
     contact_items = []
     if email:
@@ -867,10 +869,13 @@ def build_header(personal, language):
         contact_items.append(f'<span class="contact-item contact-github"><a href="{github}" target="_blank">GitHub</a></span>')
 
     contact_html = "\n".join(contact_items) if contact_items else ""
+    # Photo is opt-in per theme. Built-in themes hide .resume-photo via CSS;
+    # a custom theme enables it by setting display: block (or similar).
+    photo_html = f'<img class="resume-photo" src="{photo_src}" alt="">\n' if photo_src else ""
 
     return f"""
 <header class="resume-header">
-    <h1 class="name">{name}</h1>
+    {photo_html}<h1 class="name">{name}</h1>
     <div class="contact-info">{contact_html}</div>
 </header>
 """
@@ -1083,7 +1088,13 @@ def main():
     # Generate HTML
     print(f"Generating HTML resume with theme '{args.theme}' in {args.lang}...")
     try:
-        html = generate_resume_html(resume_data, theme=args.theme, language=args.lang, editable=args.editable)
+        html = generate_resume_html(
+            resume_data,
+            theme=args.theme,
+            language=args.lang,
+            editable=args.editable,
+            resume_json_path=args.resume_json,
+        )
     except ValueError as e:
         print("Error: Invalid theme configuration")
         print(f"Details: {e}")

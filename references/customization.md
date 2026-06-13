@@ -53,6 +53,23 @@ Use it with:
 python3 scripts/export_resume.py --theme editorial --format html resume.json output.html
 ```
 
+### Enabling the portrait photo
+
+`personal.photo` is hidden by default in every built-in theme. To display it in a custom theme, add a `.resume-photo` rule to your `style.css`:
+
+```css
+.resume-photo {
+    display: block;
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 50%;   /* or 4px for a square headshot */
+    margin: 0 auto 12px;
+}
+```
+
+Only include a photo when the target market expects one — many regions (US, UK, Canada, Australia, much of the EU) penalize or reject photo resumes for anti-discrimination reasons.
+
 ## Modifying Resume Data Structure
 
 To add custom fields:

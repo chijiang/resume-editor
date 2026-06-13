@@ -196,14 +196,100 @@ body {
 
 /* Print */
 @media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
     body {
         background: white;
         padding: 0;
+        font-size: 10.5pt;
+        line-height: 1.4;
     }
 
     .resume-container {
         box-shadow: none;
         padding: 0;
+    }
+
+    .resume-header {
+        padding: 0 0 8px;
+        margin-bottom: 8px;
+    }
+
+    .resume-header .name {
+        font-size: 1.6em;
+        margin-bottom: 4px;
+    }
+
+    .resume-header .contact-info {
+        font-size: 0.82em;
+        gap: 3px 14px;
+    }
+
+    .resume-section {
+        margin-bottom: 0;
+        padding: 0;
+    }
+
+    .section-title {
+        font-size: 1.0em;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .experience-item,
+    .education-item,
+    .project-item {
+        margin-bottom: 10px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .company-name,
+    .institution,
+    .project-name {
+        font-size: 1.0em;
+    }
+
+    .position,
+    .degree,
+    .role {
+        font-size: 0.92em;
+    }
+
+    .experience-description,
+    .project-description {
+        font-size: 0.9em;
+        line-height: 1.45;
+        margin: 4px 0;
+    }
+
+    .responsibilities,
+    .achievements {
+        margin-top: 4px;
+    }
+
+    .responsibilities li,
+    .achievements li {
+        font-size: 0.9em;
+        line-height: 1.4;
+        margin-bottom: 2px;
+    }
+
+    .technologies,
+    .gpa,
+    .honors,
+    .location {
+        font-size: 0.84em;
+    }
+
+    .skill-list {
+        font-size: 0.9em;
+        line-height: 1.5;
     }
 }
 
@@ -247,4 +333,56 @@ body {
 }
 .skill-list .skill-item:last-child::after {
     content: "";
+}
+
+/* Photo is opt-in. Built-in themes hide it; enable in a custom theme via display: block. */
+.resume-photo {
+    display: none;
+}
+
+/* Mobile */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    .resume-container {
+        padding: 30px 24px;
+    }
+
+    .resume-header .name {
+        font-size: 1.6em;
+        letter-spacing: 1px;
+    }
+
+    .resume-header .contact-info {
+        font-size: 0.84em;
+        gap: 4px 12px;
+    }
+
+    .experience-header,
+    .education-header,
+    .project-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .period {
+        margin-left: 0;
+        margin-top: 2px;
+    }
+}
+
+/* Skill items rendered as inline chips; comma-separated for display */
+.skill-list .skill-item::after {
+    content: ", ";
+}
+.skill-list .skill-item:last-child::after {
+    content: "";
+}
+
+/* Photo is opt-in. Built-in themes hide it; enable in a custom theme via display: block. */
+.resume-photo {
+    display: none;
 }
