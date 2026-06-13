@@ -1,40 +1,57 @@
 # Customization
 
-## Adding New Themes
+## Tuning an Existing Theme
 
-1. **Create HTML template** in `assets/templates/your-theme.html`:
-   ```html
-   <!DOCTYPE html>
-   <html lang="en">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>Resume</title>
-       <style>
-           {{CSS}}
-       </style>
-   </head>
-   <body>
-       <div class="resume-container">
-           {{CONTENT}}
-       </div>
-   </body>
-   </html>
+If the user likes one of the built-in themes but wants adjustments, scaffold a reusable custom theme:
+
+```bash
+python3 scripts/create_theme.py my-theme --base modern
+```
+
+This creates:
+
+- `user-themes/my-theme/template.html`
+- `user-themes/my-theme/style.css`
+
+Then:
+
+1. Edit `style.css` for colors, spacing, fonts, borders, print layout, and emphasis.
+2. Edit `template.html` only if the outer HTML wrapper needs to change.
+3. Export with the custom theme:
+   ```bash
+   python3 scripts/export_resume.py --theme my-theme --format html resume.json output.html
    ```
 
-2. **Create CSS file** in `assets/css/your-theme.css`
+For one-off experimentation, you can also pass a direct path to a custom theme directory:
 
-3. **Register theme** in `scripts/generate_html.py`:
-   Add your theme name to the `--theme` argument's `choices` list.
+```bash
+python3 scripts/export_resume.py --theme /absolute/path/to/my-theme --format pdf resume.json output.pdf
+```
 
-## Adding New Languages
+## Creating a Theme From Scratch
 
-1. **Register language code** in `scripts/generate_html.py`:
-   Add to the `--lang` argument's `choices` list.
+Create a directory with:
 
-2. **Add translations** to the `SECTION_TITLES` dictionary in `scripts/generate_html.py`.
+- `style.css` (required)
+- `template.html` (optional; falls back to the default HTML wrapper when omitted)
 
-3. **Test**: `python3 scripts/generate_html.py --theme modern --lang your-lang resume.json output.html`
+Recommended location:
+
+- `user-themes/<theme-name>/`
+
+Example:
+
+```text
+user-themes/editorial/
+├── style.css
+└── template.html
+```
+
+Use it with:
+
+```bash
+python3 scripts/export_resume.py --theme editorial --format html resume.json output.html
+```
 
 ## Modifying Resume Data Structure
 
@@ -43,6 +60,15 @@ To add custom fields:
 1. Update the JSON schema in your resume data file
 2. Add HTML generation logic in `scripts/generate_html.py` for the new section
 3. Add CSS styles for the custom section in your theme's CSS file
+
+## Adding New Languages
+
+1. Register the language code in `scripts/resume_utils.py`
+2. Add translations to `LOCALIZED_TEXT` in `scripts/resume_utils.py`
+3. Test:
+   ```bash
+   python3 scripts/export_resume.py --theme modern --lang your-lang --format html resume.json output.html
+   ```
 
 ## Exporting to Other Formats
 

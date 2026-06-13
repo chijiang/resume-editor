@@ -23,14 +23,17 @@ except ImportError:
     HAS_PLAYWRIGHT = False
 
 
+PDF_MARGIN = "10mm"
+
+
 def convert_with_pdfkit(html_path, output_path):
     """Convert HTML to PDF using pdfkit/wkhtmltopdf."""
     options = {
         'page-size': 'A4',
-        'margin-top': '0.75in',
-        'margin-right': '0.75in',
-        'margin-bottom': '0.75in',
-        'margin-left': '0.75in',
+        'margin-top': PDF_MARGIN,
+        'margin-right': PDF_MARGIN,
+        'margin-bottom': PDF_MARGIN,
+        'margin-left': PDF_MARGIN,
         'encoding': 'UTF-8',
         'no-outline': None,
         'enable-local-file-access': None
@@ -55,10 +58,10 @@ def convert_with_playwright(html_path, output_path):
             path=output_path,
             format="A4",
             margin={
-                "top": "0.75in",
-                "right": "0.75in",
-                "bottom": "0.75in",
-                "left": "0.75in"
+                "top": PDF_MARGIN,
+                "right": PDF_MARGIN,
+                "bottom": PDF_MARGIN,
+                "left": PDF_MARGIN
             },
             print_background=True
         )

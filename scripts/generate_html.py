@@ -11,11 +11,14 @@ import sys
 from pathlib import Path
 
 from resume_utils import (
+    DEFAULT_THEME,
     SUPPORTED_LANGUAGES,
-    SUPPORTED_THEMES,
+    list_available_themes,
     get_localized_text,
     normalize_resume_data,
+    resolve_theme_assets,
     validate_resume_data,
+    ensure_string_list,
 )
 
 
@@ -180,6 +183,27 @@ body.resume-editing .resume-header [contenteditable="true"]:focus {{
 .edit-add-btn, .edit-remove-btn {{
     display: none;
 }}
+/* Section-level "Add entry" buttons (hidden outside edit mode) */
+.edit-add-entry-btn {{
+    display: none;
+}}
+body.resume-editing .edit-add-entry-btn {{
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 14px;
+    border: 1px dashed rgba(100, 116, 200, 0.6);
+    border-radius: 6px;
+    background: rgba(100, 116, 200, 0.08);
+    color: rgba(100, 116, 200, 1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}}
+body.resume-editing .edit-add-entry-btn:hover {{
+    background: rgba(100, 116, 200, 0.18);
+}}
 body.resume-editing .edit-add-btn {{
     display: inline-block;
     width: 22px;
@@ -198,15 +222,13 @@ body.resume-editing .edit-add-btn {{
 body.resume-editing .edit-add-btn:hover {{
     background: rgba(100, 116, 200, 0.12);
 }}
-body.resume-editing li {{
+body.resume-editing li,
+body.resume-editing .skill-item {{
     position: relative;
 }}
-body.resume-editing li .edit-remove-btn {{
+body.resume-editing li .edit-remove-btn,
+body.resume-editing .skill-item .edit-remove-btn {{
     display: none;
-    position: absolute;
-    right: -4px;
-    top: 50%;
-    transform: translateY(-50%);
     width: 18px;
     height: 18px;
     border-radius: 50%;
@@ -217,13 +239,26 @@ body.resume-editing li .edit-remove-btn {{
     line-height: 1;
     cursor: pointer;
     transition: background 0.15s;
+    vertical-align: middle;
+    margin-left: 4px;
+    padding: 0;
 }}
-body.resume-editing li:hover .edit-remove-btn {{
-    display: flex;
+/* li: overlay button absolutely positioned to the right */
+body.resume-editing li .edit-remove-btn {{
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+}}
+body.resume-editing li:hover .edit-remove-btn,
+body.resume-editing .skill-item:hover .edit-remove-btn,
+body.resume-editing .skill-item:focus-within .edit-remove-btn {{
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }}
-body.resume-editing li .edit-remove-btn:hover {{
+body.resume-editing li .edit-remove-btn:hover,
+body.resume-editing .skill-item .edit-remove-btn:hover {{
     background: rgba(239, 68, 68, 0.3);
 }}
 /* Print: hide all edit UI */
@@ -232,7 +267,8 @@ body.resume-editing li .edit-remove-btn:hover {{
     #resume-edit-toolbar,
     #resume-edit-toast,
     .edit-add-btn,
-    .edit-remove-btn {{
+    .edit-remove-btn,
+    .edit-add-entry-btn {{
         display: none !important;
     }}
     body.resume-editing {{
@@ -291,10 +327,10 @@ body.resume-editing li .edit-remove-btn:hover {{
         '.project-item .project-description',
         '.project-item .achievements li',
         '.skill-category .category-title',
-        '.skill-category .skill-list'
+        '.skill-category .skill-item'
     ];
 
-    var LIST_CONTAINERS = '.achievements, .responsibilities';
+    var LIST_CONTAINERS = '.achievements, .responsibilities, .skill-list';
 
     function getOriginalData() {{
         var el = document.getElementById('resume-source-data');
@@ -341,6 +377,7 @@ body.resume-editing li .edit-remove-btn:hover {{
 
         // Add list item management buttons
         addListButtons();
+        addEntryButtons();
     }}
 
     function preventNav(e) {{
@@ -371,45 +408,161 @@ body.resume-editing li .edit-remove-btn:hover {{
         }});
 
         removeListButtons();
+        removeEntryButtons();
+    }}
+
+    function makeEntryButton(label, sectionType) {{
+        var btn = document.createElement('button');
+        btn.className = 'edit-add-entry-btn';
+        btn.setAttribute('data-edit-control', '');
+        btn.setAttribute('data-section-type', sectionType);
+        btn.textContent = '+ ' + label;
+        btn.addEventListener('click', function() {{ appendBlankEntry(sectionType); }});
+        return btn;
+    }}
+
+    function addEntryButtons() {{
+        var sectionMap = [
+            ['experience', {json.dumps(labels["add_experience"], ensure_ascii=False)}],
+            ['education', {json.dumps(labels["add_education"], ensure_ascii=False)}],
+            ['projects', {json.dumps(labels["add_project"], ensure_ascii=False)}],
+        ];
+        sectionMap.forEach(function(pair) {{
+            var sectionEl = document.querySelector('[data-section="' + pair[0] + '"]');
+            if (sectionEl) sectionEl.appendChild(makeEntryButton(pair[1], pair[0]));
+        }});
+    }}
+
+    function removeEntryButtons() {{
+        document.querySelectorAll('.edit-add-entry-btn').forEach(function(b) {{ b.remove(); }});
+    }}
+
+    function applyEditableToEntry(root) {{
+        // Mark text fields editable and attach list buttons within a newly added entry
+        var selectorsByType = {{
+            experience: ['.company-name', '.position', '.period', '.location',
+                         '.experience-description', '.achievements li', '.responsibilities li'],
+            education: ['.institution', '.degree', '.period', '.location', '.gpa', '.honors'],
+            projects: ['.project-name', '.role', '.period', '.technologies',
+                       '.project-description', '.achievements li'],
+        }};
+        var selectors = selectorsByType[root.getAttribute('data-entry-type')] || [];
+        selectors.forEach(function(sel) {{
+            root.querySelectorAll(sel).forEach(function(el) {{
+                el.setAttribute('contenteditable', 'true');
+            }});
+        }});
+        root.querySelectorAll(LIST_CONTAINERS).forEach(function(container) {{
+            var isSkillList = container.classList.contains('skill-list');
+            var addBtn = document.createElement('button');
+            addBtn.className = 'edit-add-btn';
+            addBtn.setAttribute('data-edit-control', '');
+            addBtn.textContent = '+';
+            addBtn.title = {json.dumps(labels["add_item"], ensure_ascii=False)};
+            addBtn.addEventListener('click', function() {{
+                var item = document.createElement(isSkillList ? 'span' : 'li');
+                if (isSkillList) item.className = 'skill-item';
+                item.setAttribute('contenteditable', 'true');
+                item.textContent = {json.dumps(labels["new_item"], ensure_ascii=False)};
+                attachRemoveBtn(item);
+                container.appendChild(item);
+                item.focus();
+            }});
+            container.parentNode.insertBefore(addBtn, container.nextSibling);
+            var itemSelector = isSkillList ? '.skill-item' : 'li';
+            container.querySelectorAll(itemSelector).forEach(attachRemoveBtn);
+        }});
+    }}
+
+    function appendBlankEntry(sectionType) {{
+        var sectionEl = document.querySelector('[data-section="' + sectionType + '"]');
+        if (!sectionEl) return;
+        var node = document.createElement('div');
+        // Template mirrors generate_html.py output structure
+        if (sectionType === 'experience') {{
+            node.innerHTML =
+                '<div class="experience-item" data-entry-type="experience">' +
+                '<div class="experience-header"><h3 class="company-name">Company</h3>' +
+                '<div class="position-period"><span class="position">Position</span>' +
+                '<span class="period"></span></div></div>' +
+                '<p class="experience-description"></p>' +
+                '<ul class="responsibilities"></ul><ul class="achievements"></ul></div>';
+        }} else if (sectionType === 'education') {{
+            node.innerHTML =
+                '<div class="education-item" data-entry-type="education">' +
+                '<div class="education-header"><h3 class="institution">Institution</h3>' +
+                '<div class="degree-period"><span class="degree">Degree</span>' +
+                '<span class="period"></span></div></div></div>';
+        }} else if (sectionType === 'projects') {{
+            node.innerHTML =
+                '<div class="project-item" data-entry-type="projects">' +
+                '<div class="project-header"><h3 class="project-name">Project</h3>' +
+                '<span class="role"></span><span class="period"></span></div>' +
+                '<p class="project-description"></p><ul class="achievements"></ul></div>';
+        }}
+        var entry = node.firstElementChild;
+        // Insert before the "+ Add" button
+        sectionEl.insertBefore(entry, sectionEl.querySelector('.edit-add-entry-btn'));
+        applyEditableToEntry(entry);
+        entry.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        var firstField = entry.querySelector('.company-name, .institution, .project-name');
+        if (firstField) {{
+            firstField.focus();
+            var range = document.createRange();
+            range.selectNodeContents(firstField);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }}
     }}
 
     function addListButtons() {{
-        document.querySelectorAll(LIST_CONTAINERS).forEach(function(ul) {{
-            ul.style.position = 'relative';
+        document.querySelectorAll(LIST_CONTAINERS).forEach(function(container) {{
+            container.style.position = 'relative';
+            var isSkillList = container.classList.contains('skill-list');
             var addBtn = document.createElement('button');
             addBtn.className = 'edit-add-btn';
             addBtn.textContent = '+';
             addBtn.title = {json.dumps(labels["add_item"], ensure_ascii=False)};
             addBtn.addEventListener('click', function() {{
-                var li = document.createElement('li');
-                li.setAttribute('contenteditable', 'true');
-                li.textContent = {json.dumps(labels["new_item"], ensure_ascii=False)};
-                attachRemoveBtn(li);
-                ul.appendChild(li);
-                li.focus();
-                // Select the placeholder text
+                var item = document.createElement(isSkillList ? 'span' : 'li');
+                if (isSkillList) item.className = 'skill-item';
+                item.setAttribute('contenteditable', 'true');
+                item.textContent = {json.dumps(labels["new_item"], ensure_ascii=False)};
+                attachRemoveBtn(item);
+                container.appendChild(item);
+                item.focus();
                 var range = document.createRange();
-                range.selectNodeContents(li);
+                range.selectNodeContents(item);
                 var sel = window.getSelection();
                 sel.removeAllRanges();
                 sel.addRange(range);
             }});
-            ul.parentNode.insertBefore(addBtn, ul.nextSibling);
+            container.parentNode.insertBefore(addBtn, container.nextSibling);
 
-            ul.querySelectorAll('li').forEach(attachRemoveBtn);
+            var itemSelector = isSkillList ? '.skill-item' : 'li';
+            container.querySelectorAll(itemSelector).forEach(attachRemoveBtn);
         }});
     }}
 
-    function attachRemoveBtn(li) {{
+    function attachRemoveBtn(item) {{
         var rmBtn = document.createElement('button');
         rmBtn.className = 'edit-remove-btn';
+        rmBtn.setAttribute('aria-hidden', 'true');
+        rmBtn.setAttribute('data-edit-control', '');
         rmBtn.textContent = '\\u00d7';
         rmBtn.title = {json.dumps(labels["remove_item"], ensure_ascii=False)};
         rmBtn.addEventListener('click', function(e) {{
             e.stopPropagation();
-            li.remove();
+            item.remove();
         }});
-        li.appendChild(rmBtn);
+        item.appendChild(rmBtn);
+    }}
+
+    function textWithoutControls(el) {{
+        var clone = el.cloneNode(true);
+        clone.querySelectorAll('[data-edit-control]').forEach(function(n) {{ n.remove(); }});
+        return clone.textContent.trim();
     }}
 
     function removeListButtons() {{
@@ -473,7 +626,7 @@ body.resume-editing li .edit-remove-btn:hover {{
                 if (el) {{
                     result.experience[i].responsibilities = [];
                     el.querySelectorAll('li').forEach(function(li) {{
-                        var t = li.textContent.trim();
+                        var t = textWithoutControls(li);
                         if (t) result.experience[i].responsibilities.push(t);
                     }});
                 }}
@@ -482,7 +635,7 @@ body.resume-editing li .edit-remove-btn:hover {{
                 if (el) {{
                     result.experience[i].achievements = [];
                     el.querySelectorAll('li').forEach(function(li) {{
-                        var t = li.textContent.trim();
+                        var t = textWithoutControls(li);
                         if (t) result.experience[i].achievements.push(t);
                     }});
                 }}
@@ -555,21 +708,17 @@ body.resume-editing li .edit-remove-btn:hover {{
                 if (el) {{
                     result.projects[i].achievements = [];
                     el.querySelectorAll('li').forEach(function(li) {{
-                        var t = li.textContent.trim();
+                        var t = textWithoutControls(li);
                         if (t) result.projects[i].achievements.push(t);
                     }});
                 }}
             }}
         }}
 
-        // Skills
+        // Skills — clear existing then rebuild from DOM to avoid stale keys
         if (result.skills) {{
-            // Build a mapping from rendered title back to original JSON key
-            var keyMap = {{}};
-            Object.keys(result.skills).forEach(function(key) {{
-                var rendered = key.replace(/_/g, ' ').replace(/\\b\\w/g, function(c) {{ return c.toUpperCase(); }});
-                keyMap[rendered] = key;
-            }});
+            Object.keys(result.skills).forEach(function(k) {{ delete result.skills[k]; }});
+            var newSkills = {{}};
 
             document.querySelectorAll('.skill-category').forEach(function(cat) {{
                 var titleEl = cat.querySelector('.category-title');
@@ -577,17 +726,24 @@ body.resume-editing li .edit-remove-btn:hover {{
                 if (!titleEl || !listEl) return;
 
                 var title = titleEl.textContent.trim();
-                var skillsText = listEl.textContent.trim();
-                var skillsArr = skillsText.split(',').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+                // Stable key: prefer original data-key attribute, fall back to normalized title
+                var dataKey = cat.getAttribute('data-key');
+                var jsonKey = dataKey || title.toLowerCase().replace(/\\s+/g, '_');
 
-                // Match to original key, or use the title as new key
-                var jsonKey = keyMap[title] || title.toLowerCase().replace(/\\s+/g, '_');
+                var skillEls = listEl.querySelectorAll('.skill-item');
+                var skillsArr = [];
+                skillEls.forEach(function(el) {{
+                    var t = textWithoutControls(el);
+                    if (t) skillsArr.push(t);
+                }});
                 if (skillsArr.length > 0) {{
-                    result.skills[jsonKey] = skillsArr;
-                }} else {{
-                    result.skills[jsonKey] = "";
+                    newSkills[jsonKey] = skillsArr;
+                }} else if (title) {{
+                    // Preserve the (now empty) category so the user's edit isn't lost
+                    newSkills[jsonKey] = [];
                 }}
             }});
+            result.skills = newSkills;
         }}
 
         return result;
@@ -618,6 +774,9 @@ body.resume-editing li .edit-remove-btn:hover {{
     btn.addEventListener('click', toggleEditMode);
     copyBtn.addEventListener('click', copyJson);
     cancelBtn.addEventListener('click', function() {{ exitEditMode(true); }});
+
+    // Expose for programmatic extraction (e.g. Playwright) per SKILL.md
+    window.extractToJson = extractToJson;
 }})();
 </script>
 '''
@@ -627,21 +786,12 @@ def generate_resume_html(resume_data, theme="modern", language="en", editable=Fa
     """
     Generate HTML resume from JSON data with specified theme and language.
     """
-    theme = theme if theme in SUPPORTED_THEMES else "modern"
+    theme = theme or DEFAULT_THEME
     language = language if language in SUPPORTED_LANGUAGES else "en"
 
-    # Load template and CSS
-    skill_dir = Path(__file__).parent.parent
-    template_path = skill_dir / "assets" / "templates" / f"{theme}.html"
-    css_path = skill_dir / "assets" / "css" / f"{theme}.css"
-
-    if not template_path.exists():
-        # Fallback to modern template
-        template_path = skill_dir / "assets" / "templates" / "modern.html"
-
-    if not css_path.exists():
-        # Fallback to modern CSS
-        css_path = skill_dir / "assets" / "css" / "modern.css"
+    theme_assets = resolve_theme_assets(theme, Path(__file__).parent.parent)
+    template_path = theme_assets["template_path"]
+    css_path = theme_assets["css_path"]
 
     template = load_template(template_path)
     css = load_css(css_path)
@@ -872,19 +1022,16 @@ def build_skills(skills, language):
 
     for category, skill_list in skills.items():
         category_escaped = escape_text(category)
-        if isinstance(skill_list, list) and skill_list:
-            escaped_skills = [escape_text(s) for s in skill_list]
-            html += f"""
-<div class="skill-category">
-    <h3 class="category-title">{category_escaped.replace('_', ' ').title()}</h3>
-    <div class="skill-list">{', '.join(escaped_skills)}</div>
-</div>
-"""
-        elif isinstance(skill_list, str):
-            html += f"""
-<div class="skill-category">
-    <h3 class="category-title">{category_escaped.replace('_', ' ').title()}</h3>
-    <div class="skill-list">{escape_text(skill_list)}</div>
+        category_key = escape_text(category)
+        display_title = category_escaped.replace('_', ' ').title()
+        items = ensure_string_list(skill_list)
+        item_spans = "".join(
+            f'<span class="skill-item">{escape_text(s)}</span>' for s in items
+        )
+        html += f"""
+<div class="skill-category" data-key="{category_key}">
+    <h3 class="category-title">{display_title}</h3>
+    <div class="skill-list">{item_spans}</div>
 </div>
 """
 
@@ -896,8 +1043,11 @@ def main():
     parser = argparse.ArgumentParser(description='Generate HTML resume from JSON data')
     parser.add_argument('resume_json', help='Path to resume JSON file')
     parser.add_argument('output_html', help='Path to output HTML file')
-    parser.add_argument('--theme', default='modern', choices=SUPPORTED_THEMES,
-                        help='Resume theme (default: modern)')
+    parser.add_argument(
+        '--theme',
+        default=DEFAULT_THEME,
+        help='Resume theme name, a user-themes/<name> custom theme, or a path to a custom theme directory',
+    )
     parser.add_argument('--lang', default='en', choices=SUPPORTED_LANGUAGES,
                         help='Language (default: en)')
     parser.add_argument('--editable', action='store_true',
@@ -934,6 +1084,11 @@ def main():
     print(f"Generating HTML resume with theme '{args.theme}' in {args.lang}...")
     try:
         html = generate_resume_html(resume_data, theme=args.theme, language=args.lang, editable=args.editable)
+    except ValueError as e:
+        print("Error: Invalid theme configuration")
+        print(f"Details: {e}")
+        print(f"Available themes: {', '.join(list_available_themes(Path(__file__).parent.parent))}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error: Failed to generate HTML")
         print(f"Details: {e}")

@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from resume_utils import SUPPORTED_LANGUAGES, SUPPORTED_THEMES
+from resume_utils import DEFAULT_THEME, SUPPORTED_LANGUAGES, list_available_themes, resolve_theme_assets
 
 
 def resolve_output_paths(output_path, output_format):
@@ -39,7 +39,11 @@ def main():
     parser.add_argument("resume_json", help="Path to resume JSON file")
     parser.add_argument("output", help="Path to final output file")
     parser.add_argument("--format", default="html", choices=["html", "pdf"], help="Output format")
-    parser.add_argument("--theme", default="modern", choices=SUPPORTED_THEMES, help="Resume theme")
+    parser.add_argument(
+        "--theme",
+        default=DEFAULT_THEME,
+        help="Built-in theme name, a user-themes/<name> custom theme, or a path to a custom theme directory",
+    )
     parser.add_argument("--lang", default="en", choices=SUPPORTED_LANGUAGES, help="Output language")
     parser.add_argument(
         "--editable",
@@ -49,7 +53,22 @@ def main():
 
     args = parser.parse_args()
 
+    if args.editable and args.format == "pdf":
+        print(
+            "Warning: --editable is ignored for PDF export (PDF always renders a clean, "
+            "non-editable HTML intermediary). Drop --editable, or export HTML with "
+            "--editable first, then convert the reviewed JSON to PDF.",
+            file=sys.stderr,
+        )
+
     script_dir = Path(__file__).resolve().parent
+    try:
+        resolve_theme_assets(args.theme, script_dir.parent)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        print(f"Available themes: {', '.join(list_available_themes(script_dir.parent))}")
+        sys.exit(1)
+
     html_output, final_output = resolve_output_paths(args.output, args.format)
 
     generate_html_cmd = [

@@ -40,7 +40,8 @@ Export a resume JSON file to a styled HTML or PDF document.
 ## Notes
 
 - `$SKILL_DIR` resolves to the directory containing this skill's SKILL.md
-- Available themes: modern, classic, minimal, creative
+- Built-in themes: modern, classic, minimal, creative
+- Custom themes: any folder under `user-themes/<name>/`, or a direct path to a custom theme directory
 - Available languages: en, zh, ja, fr, de, es
 - PDF export renders a clean intermediary HTML before creating the final PDF
 - PDF export requires pdfkit or playwright installed

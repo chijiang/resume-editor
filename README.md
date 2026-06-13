@@ -9,6 +9,7 @@ AI-powered resume builder that runs locally. Import from PDF, edit interactively
 - **PDF Import** — Extract structured data from existing resumes
 - **AI Editing** — Add/update sections through natural conversation
 - **4 Themes** — Modern, Classic, Minimal, Creative
+- **Custom Themes** — Derive and reuse your own style from any built-in theme
 - **6 Languages** — English, 中文, 日本語, Français, Deutsch, Español
 - **Dual Export** — Styled HTML + print-ready PDF (A4)
 - **Editable Review Loop** — Browser-based preview and edit before final export
@@ -119,6 +120,12 @@ python3 scripts/export_resume.py --format pdf --theme modern --lang en reference
 # Generate editable review HTML first
 python3 scripts/export_resume.py --format html --theme modern --lang en --editable references/example-resume.json editable-output.html
 
+# Create a reusable custom theme from an existing base
+python3 scripts/create_theme.py editorial --base modern
+
+# Export with your custom theme later
+python3 scripts/export_resume.py --format html --theme editorial --lang en references/example-resume.json editorial-output.html
+
 # Import from existing PDF
 python3 scripts/extract_from_pdf.py existing-resume.pdf extracted.json
 ```
@@ -213,6 +220,13 @@ For meaningful edits or imported resumes, use this flow:
 4. Copy the updated JSON back into your working file
 5. Export a final non-editable HTML or PDF
 
+If the default themes are close but not quite right:
+
+1. Pick the nearest built-in theme
+2. Scaffold a reusable custom theme with `scripts/create_theme.py`
+3. Adjust `user-themes/<name>/style.css`
+4. Reuse that theme name in future exports
+
 ## Project Structure
 
 ```
@@ -224,6 +238,7 @@ resume-editor/
 │   ├── example-resume.json   # Example resume (fictional data)
 │   └── resume-schema.json    # Canonical resume schema
 ├── scripts/
+│   ├── create_theme.py       # Scaffold a reusable custom theme
 │   ├── export_resume.py      # Unified JSON → HTML/PDF export
 │   ├── extract_from_pdf.py   # PDF → JSON
 │   ├── generate_html.py      # JSON → HTML (multi-theme, multi-language)
@@ -235,11 +250,8 @@ resume-editor/
 │   │   ├── classic.css
 │   │   ├── minimal.css
 │   │   └── creative.css
-│   └── templates/            # HTML templates
-│       ├── modern.html
-│       ├── classic.html
-│       ├── minimal.html
-│       └── creative.html
+│   └── templates/            # HTML wrapper template
+│       └── base.html
 └── commands/
     └── resume-export.md      # Slash command definition
 ```

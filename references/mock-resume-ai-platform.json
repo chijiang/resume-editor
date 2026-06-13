@@ -1,0 +1,99 @@
+{
+  "personal": {
+    "name": "林予安",
+    "email": "linyuan.mock@example.com",
+    "phone": "+86 139-0000-2486",
+    "location": "上海, 中国",
+    "linkedin": "https://linkedin.com/in/linyuan-mock",
+    "github": "https://github.com/linyuan-mock"
+  },
+  "summary": "拥有6年经验的 AI 平台与全栈产品工程师，专注于将复杂的数据、模型与业务流程产品化。擅长使用 Python、TypeScript、React、FastAPI 和云原生基础设施搭建可复用的智能工作流，兼顾系统架构、交互落地与交付效率，曾在 B2B SaaS 与企业软件场景中持续推动从需求验证到规模化上线的全链路交付。",
+  "education": [
+    {
+      "institution": "上海交通大学",
+      "degree": "软件工程 硕士",
+      "period": "2017-2020",
+      "location": "上海",
+      "gpa": "3.8/4.0",
+      "honors": ["优秀毕业生", "研究生学业一等奖学金"]
+    },
+    {
+      "institution": "东南大学",
+      "degree": "计算机科学与技术 学士",
+      "period": "2013-2017",
+      "location": "南京",
+      "gpa": "3.6/4.0"
+    }
+  ],
+  "experience": [
+    {
+      "company": "某 AI 协作平台",
+      "position": "高级产品工程师 / AI Platform Lead",
+      "period": "2023-至今",
+      "location": "上海",
+      "description": "负责企业级 AI 协作平台的产品工程与平台化建设，带领 6 人跨职能小组推进知识检索、工作流编排、权限体系和交付基础设施的统一演进，为销售、交付与客户成功团队提供可复用的智能化工具能力。",
+      "responsibilities": [
+        "主导 AI 工作流平台的架构设计，将检索、提示词、工具调用和审批节点抽象为标准化编排组件",
+        "推动前后端统一设计系统与组件规范，缩短新业务场景落地时间并降低多团队协作成本",
+        "与客户成功和解决方案团队共创行业模板，沉淀可复用的交付模式与最佳实践"
+      ],
+      "achievements": [
+        "将新客户 PoC 搭建周期从 10 个工作日缩短至 3 个工作日",
+        "推动 20+ 家企业客户上线统一知识助手，月活使用人数超过 8,000",
+        "通过埋点分析和工作流优化，将关键任务完成率提升 34%"
+      ]
+    },
+    {
+      "company": "某企业软件公司",
+      "position": "全栈工程师",
+      "period": "2020-2023",
+      "location": "杭州",
+      "description": "参与面向中大型企业的运营分析与流程自动化产品建设，负责业务后台、指标服务、权限管理和数据可视化模块，支持多个行业客户的多租户部署与持续交付。",
+      "responsibilities": [
+        "负责 React + TypeScript 后台应用和 Python 服务端能力开发",
+        "设计统一指标接口和缓存策略，支撑多业务线复用同一套数据服务",
+        "与实施团队协作优化租户配置流程，降低项目初始化的人力投入"
+      ],
+      "achievements": [
+        "将核心看板首页加载时间从 4.8 秒优化到 1.6 秒",
+        "交付 12 个企业客户定制化模块，同时保持主干版本稳定迭代",
+        "建立前端错误监控与灰度发布机制，线上回滚次数减少 50%"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "企业知识助手",
+      "role": "技术负责人",
+      "period": "2025",
+      "technologies": ["Python", "FastAPI", "React", "PostgreSQL", "Redis", "OpenAI API", "Docker"],
+      "description": "搭建面向企业内部知识检索与问答的智能助手，将文档解析、向量索引、权限过滤和多轮对话整合为统一的工作流服务。前端提供可解释引用与反馈闭环，后端支持多租户隔离与可观测性埋点。",
+      "achievements": [
+        "支持 300 万+ 文档切片检索，常见问答响应时间稳定在 2 秒内",
+        "将文档问答人工支持工单量减少 41%",
+        "构建反馈数据回流机制，连续两个月将高满意回答占比提升至 89%"
+      ]
+    },
+    {
+      "name": "运营决策驾驶舱",
+      "role": "主程 / 产品工程负责人",
+      "period": "2024",
+      "technologies": ["TypeScript", "Next.js", "ECharts", "Node.js", "ClickHouse", "Kubernetes"],
+      "description": "面向管理层搭建统一经营分析驾驶舱，整合销售、交付、续费与客户健康度指标，支持跨区域、跨客户层级钻取分析，并沉淀成可快速复制的行业模板。",
+      "achievements": [
+        "将周报人工汇总流程由 6 小时缩短到 20 分钟",
+        "支持 50+ 关键指标实时刷新和多层级权限控制",
+        "基于模板化配置实现 3 个行业版本复用，交付效率提升 60%"
+      ]
+    }
+  ],
+  "skills": {
+    "programming": ["Python", "TypeScript", "JavaScript", "SQL", "Go"],
+    "frontend": ["React", "Next.js", "Tailwind CSS", "ECharts"],
+    "backend": ["FastAPI", "Node.js", "PostgreSQL", "Redis", "REST API"],
+    "ai_and_data": ["OpenAI API", "RAG", "Prompt Engineering", "Analytics", "A/B Testing"],
+    "cloud_and_devops": ["Docker", "Kubernetes", "AWS", "GitHub Actions", "Observability"],
+    "tools": ["Git", "Figma", "Jira", "Notion", "Linux"],
+    "languages": ["中文（母语）", "英语（流利）"]
+  }
+}

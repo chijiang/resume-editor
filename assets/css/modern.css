@@ -243,18 +243,185 @@ body {
 
 /* Print */
 @media print {
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+
     body {
-        background: white;
+        background:
+            linear-gradient(
+                to right,
+                #1e293b 0,
+                #1e293b 210px,
+                white 210px,
+                white 100%
+            );
         padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
     .resume-container {
+        display: flex;
         box-shadow: none;
+        max-width: none;
+        align-items: flex-start;
+        background: transparent;
+    }
+
+    .sidebar {
+        width: 210px;
+        flex: 0 0 210px;
+        align-self: flex-start;
+        display: flex;
+        flex-direction: column;
+        height: calc(297mm - 20mm);
+        min-height: 0;
+        background: #1e293b;
+        overflow: hidden;
+        padding-bottom: 18px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .resume-header {
+        padding: 24px 18px 14px;
+    }
+
+    .resume-header .name {
+        font-size: 1.42em;
+        margin-bottom: 14px;
+    }
+
+    .resume-header .contact-info {
+        gap: 7px;
+    }
+
+    .resume-header .contact-item {
+        font-size: 0.76em;
+        word-break: break-word;
+    }
+
+    [data-section="skills"] {
+        margin-top: auto;
+        padding: 0 18px 0;
+    }
+
+    [data-section="skills"] .skill-category {
+        margin-bottom: 8px;
+    }
+
+    [data-section="skills"] .section-title {
+        font-size: 0.72em;
+        letter-spacing: 1.6px;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+    }
+
+    [data-section="skills"] .category-title {
+        font-size: 0.64em;
+        letter-spacing: 0.9px;
+        margin-top: 0;
+        margin-bottom: 2px;
+    }
+
+    [data-section="skills"] .skill-list {
+        font-size: 0.76em;
+        line-height: 1.42;
+    }
+
+    .main-content {
+        flex: 1;
+        min-width: 0;
+        background: transparent;
+    }
+
+    [data-section="summary"],
+    [data-section="experience"],
+    [data-section="education"],
+    [data-section="projects"] {
+        padding: 18px 22px 0;
+    }
+
+    [data-section="summary"] {
+        padding-top: 22px;
+    }
+
+    [data-section="projects"] {
+        padding-bottom: 14px;
+    }
+
+    .resume-section {
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+
+    .section-title {
+        font-size: 0.9em;
+        letter-spacing: 1.15px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .experience-item,
+    .education-item,
+    .project-item {
+        margin-bottom: 14px;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .experience-header,
+    .education-header,
+    .project-header {
+        margin-bottom: 2px;
+    }
+
+    .company-name,
+    .institution,
+    .project-name {
+        font-size: 0.98em;
+    }
+
+    .position-period,
+    .degree-period {
+        font-size: 0.82em;
+    }
+
+    .location,
+    .technologies,
+    .gpa,
+    .honors {
+        font-size: 0.77em;
+    }
+
+    .experience-description,
+    .project-description,
+    .responsibilities li,
+    .achievements li,
+    [data-section="summary"] p {
+        font-size: 0.83em;
+        line-height: 1.48;
+    }
+
+    .responsibilities,
+    .achievements {
+        margin-left: 16px;
+        margin-top: 4px;
+    }
+
+    .responsibilities li,
+    .achievements li {
+        margin-bottom: 2px;
     }
 }
 
-/* Mobile - collapse to single column */
-@media (max-width: 768px) {
+/* Mobile - collapse to single column on screens only.
+   Keep the desktop two-column layout for PDF/print output. */
+@media screen and (max-width: 768px) {
     body {
         padding: 0;
     }
@@ -300,4 +467,12 @@ body {
         margin-left: 0;
         margin-top: 4px;
     }
+}
+
+/* Skill items rendered as inline chips; comma-separated for display */
+.skill-list .skill-item::after {
+    content: ", ";
+}
+.skill-list .skill-item:last-child::after {
+    content: "";
 }

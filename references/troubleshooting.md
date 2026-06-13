@@ -30,8 +30,8 @@
 
 - **Cause**: Theme files are missing from assets directory
 - **Solutions**:
-  - Check that theme HTML exists in `assets/templates/`
-  - Verify CSS exists in `assets/css/`
+  - Check that `assets/templates/base.html` exists
+  - Verify CSS exists in `assets/css/` for the requested theme
   - Use `--theme modern` as fallback
 
 ## Invalid email format error

@@ -208,7 +208,7 @@ body {
 }
 
 /* Mobile */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     body {
         padding: 15px;
     }
@@ -239,4 +239,12 @@ body {
         margin-left: 0;
         margin-top: 2px;
     }
+}
+
+/* Skill items rendered as inline chips; comma-separated for display */
+.skill-list .skill-item::after {
+    content: ", ";
+}
+.skill-list .skill-item:last-child::after {
+    content: "";
 }

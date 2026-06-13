@@ -7,9 +7,13 @@ from __future__ import annotations
 
 import copy
 import re
+from pathlib import Path
 
-SUPPORTED_THEMES = ["modern", "classic", "minimal", "creative"]
+BUILTIN_THEMES = ["modern", "classic", "minimal", "creative"]
+SUPPORTED_THEMES = BUILTIN_THEMES
 SUPPORTED_LANGUAGES = ["en", "zh", "ja", "fr", "de", "es"]
+DEFAULT_THEME = "modern"
+USER_THEME_DIRNAME = "user-themes"
 
 LOCALIZED_TEXT = {
     "en": {
@@ -31,6 +35,9 @@ LOCALIZED_TEXT = {
         "add_item": "Add item",
         "remove_item": "Remove item",
         "new_item": "New item",
+        "add_experience": "Add experience",
+        "add_education": "Add education",
+        "add_project": "Add project",
     },
     "zh": {
         "summary": "个人简介",
@@ -51,6 +58,9 @@ LOCALIZED_TEXT = {
         "add_item": "新增条目",
         "remove_item": "删除条目",
         "new_item": "新条目",
+        "add_experience": "新增工作经历",
+        "add_education": "新增教育经历",
+        "add_project": "新增项目",
     },
     "ja": {
         "summary": "プロフィール",
@@ -71,6 +81,9 @@ LOCALIZED_TEXT = {
         "add_item": "項目を追加",
         "remove_item": "項目を削除",
         "new_item": "新しい項目",
+        "add_experience": "職歴を追加",
+        "add_education": "学歴を追加",
+        "add_project": "プロジェクトを追加",
     },
     "fr": {
         "summary": "Profil Professionnel",
@@ -91,6 +104,9 @@ LOCALIZED_TEXT = {
         "add_item": "Ajouter un element",
         "remove_item": "Supprimer l'element",
         "new_item": "Nouvel element",
+        "add_experience": "Ajouter une experience",
+        "add_education": "Ajouter une formation",
+        "add_project": "Ajouter un projet",
     },
     "de": {
         "summary": "Zusammenfassung",
@@ -111,6 +127,9 @@ LOCALIZED_TEXT = {
         "add_item": "Eintrag hinzufugen",
         "remove_item": "Eintrag entfernen",
         "new_item": "Neuer Eintrag",
+        "add_experience": "Berufserfahrung hinzufugen",
+        "add_education": "Ausbildung hinzufugen",
+        "add_project": "Projekt hinzufugen",
     },
     "es": {
         "summary": "Resumen Profesional",
@@ -131,6 +150,9 @@ LOCALIZED_TEXT = {
         "add_item": "Agregar elemento",
         "remove_item": "Eliminar elemento",
         "new_item": "Nuevo elemento",
+        "add_experience": "Agregar experiencia",
+        "add_education": "Agregar educacion",
+        "add_project": "Agregar proyecto",
     },
 }
 
@@ -329,3 +351,87 @@ def validate_resume_data(resume_data):
         errors.append(f"Invalid email format: {email}")
 
     return errors
+
+
+def get_skill_root():
+    """Return the repository root that contains SKILL.md and bundled assets."""
+    return Path(__file__).resolve().parent.parent
+
+
+def get_user_theme_root(skill_root=None):
+    """Return the root directory for reusable custom themes."""
+    return Path(skill_root or get_skill_root()) / USER_THEME_DIRNAME
+
+
+def list_available_themes(skill_root=None):
+    """List built-in themes and discovered user themes."""
+    themes = list(BUILTIN_THEMES)
+    user_theme_root = get_user_theme_root(skill_root)
+
+    if user_theme_root.exists():
+        for candidate in sorted(user_theme_root.iterdir()):
+            if candidate.is_dir() and (
+                (candidate / "style.css").exists() or (candidate / "template.html").exists()
+            ):
+                themes.append(candidate.name)
+
+    return themes
+
+
+def resolve_theme_assets(theme, skill_root=None):
+    """
+    Resolve template and stylesheet paths for a built-in or user-defined theme.
+
+    Supported theme inputs:
+    - built-in theme name, such as `modern`
+    - user theme name under `user-themes/<name>/`
+    - direct path to a custom theme directory containing `style.css` and/or `template.html`
+    """
+    skill_root = Path(skill_root or get_skill_root())
+    assets_root = skill_root / "assets"
+    builtin_template = assets_root / "templates" / "base.html"
+    builtin_css = assets_root / "css" / f"{DEFAULT_THEME}.css"
+
+    if theme in BUILTIN_THEMES:
+        template_path = builtin_template
+        css_path = assets_root / "css" / f"{theme}.css"
+        return {
+            "theme_name": theme,
+            "theme_type": "builtin",
+            "template_path": template_path,
+            "css_path": css_path,
+        }
+
+    direct_path = Path(theme).expanduser()
+    if not direct_path.is_absolute():
+        direct_path = (Path.cwd() / direct_path).resolve()
+    if direct_path.is_dir():
+        custom_dir = direct_path
+    else:
+        named_dir = get_user_theme_root(skill_root) / theme
+        custom_dir = named_dir if named_dir.is_dir() else None
+
+    if custom_dir is None:
+        available = ", ".join(list_available_themes(skill_root))
+        raise ValueError(
+            f"Unknown theme '{theme}'. Use one of: {available}, or pass a path to a custom theme directory."
+        )
+
+    template_path = custom_dir / "template.html"
+    css_path = custom_dir / "style.css"
+
+    if not template_path.exists():
+        template_path = builtin_template
+    if not css_path.exists():
+        raise ValueError(
+            f"Custom theme '{custom_dir}' is missing style.css. "
+            "Create the file or scaffold a theme with scripts/create_theme.py."
+        )
+
+    return {
+        "theme_name": custom_dir.name,
+        "theme_type": "custom",
+        "template_path": template_path,
+        "css_path": css_path,
+        "theme_dir": custom_dir,
+    }

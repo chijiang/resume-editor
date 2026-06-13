@@ -57,6 +57,19 @@ When the user requests meaningful edits, especially after import, prefer an edit
 2. Generate an editable HTML preview when the user will likely want to iterate visually.
 3. Review the resulting content for clarity, grammar, consistency, and scannability before final export.
 
+When the user dislikes the built-in look and wants a more personalized visual style:
+
+1. Identify the closest built-in theme (`modern`, `classic`, `minimal`, `creative`).
+2. Scaffold a reusable custom theme from that base:
+   ```bash
+   python3 "$SKILL_DIR/scripts/create_theme.py" custom-theme-name --base modern
+   ```
+3. Tune `user-themes/custom-theme-name/style.css` based on the user's feedback.
+4. If layout structure must change, also adjust `user-themes/custom-theme-name/template.html`.
+5. Reuse that custom theme in future exports with `--theme custom-theme-name`.
+
+Prefer this path over editing built-in assets directly. It preserves the stock themes and gives the user a reusable personal template.
+
 **Important separation principle:**
 - **Work Experience** should stay high-level: job responsibilities at a business level, scope (team size, industry sectors), leadership and business impact.
 - **Projects** should go deep on technical specifics: technologies, architecture, quantified achievements with metrics.
@@ -78,6 +91,7 @@ This separation makes the resume scannable for HR while providing depth for engi
 The PDF flow always renders a clean HTML intermediary first, then converts it to PDF. Do not use editable HTML as the final PDF source.
 
 **Available themes:** `modern`, `classic`, `minimal`, `creative`
+**Custom themes:** Any folder under `user-themes/<name>/` with a `style.css`, or a direct path to a custom theme directory
 **Available languages:** `en`, `zh`, `ja`, `fr`, `de`, `es`
 
 ### 4. Interactive Edit Mode (Edit-Review-Export)
