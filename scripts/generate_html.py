@@ -325,11 +325,29 @@ def build_edit_script(resume_data, language, resume_json_path=None, sync_config=
 #resume-color-popover.visible {{
     display: block;
 }}
+#resume-color-popover .swatch-section[hidden] {{
+    display: none;
+}}
+#resume-color-popover .section-label {{
+    margin: 0 0 6px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}}
+#resume-color-popover .swatch-section + .swatch-section {{
+    margin-top: 8px;
+}}
 #resume-color-popover .swatch-grid {{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 6px;
     margin-bottom: 8px;
+}}
+#resume-color-popover .swatch-grid.recent-grid {{
+    grid-template-columns: repeat(5, 1fr);
+    margin-bottom: 0;
 }}
 #resume-color-popover .swatch {{
     width: 24px;
@@ -535,7 +553,13 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     </div>
 </div>
 <div id="resume-color-popover">
-    <div class="swatch-grid" id="resume-color-swatches"></div>
+    <div class="swatch-section" id="resume-recent-colors-section" hidden>
+        <div class="section-label">{escape_text(labels["recent_colors"])}</div>
+        <div class="swatch-grid recent-grid" id="resume-recent-color-swatches"></div>
+    </div>
+    <div class="swatch-section">
+        <div class="swatch-grid" id="resume-color-swatches"></div>
+    </div>
     <div class="hex-row">
         <input type="color" id="resume-color-picker" value="#c0392b">
         <input type="text" id="resume-color-hex" placeholder="#rrggbb" maxlength="9">
@@ -555,11 +579,21 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     var colorBtn = document.getElementById('edit-color-btn');
     var saveBtn = document.getElementById('edit-save-btn');
     var colorPopover = document.getElementById('resume-color-popover');
+    var recentColorSection = document.getElementById('resume-recent-colors-section');
+    var recentColorSwatches = document.getElementById('resume-recent-color-swatches');
     var colorSwatches = document.getElementById('resume-color-swatches');
     var colorPicker = document.getElementById('resume-color-picker');
     var colorHex = document.getElementById('resume-color-hex');
     var isEditing = false;
     var originalHtml = null;
+    var RECENT_COLOR_STORAGE_KEY = 'resume-edit-recent-colors-v1';
+    var MAX_RECENT_COLORS = 5;
+    var PRESET_COLORS = [
+        '#c0392b', '#e67e22', '#f1c40f', '#27ae60', '#2980b9', '#8e44ad',
+        '#000000', '#555555', '#999999', '#16a085', '#2c3e50', '#d35400'
+    ];
+    var recentColors = [];
+    var lastAppliedPickerColor = null;
 
     // Fields that serialize rich text back to the Markdown subset.
     // Everything else uses plain textContent.
@@ -691,6 +725,95 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         return !sel || sel.rangeCount === 0 || sel.isCollapsed;
     }}
 
+    function normalizeColorValue(color) {{
+        if (!color) return null;
+        var normalized = String(color).trim().toLowerCase();
+        if (/^#[0-9a-f]{{3,8}}$/.test(normalized)) return normalized;
+        if (/^[a-z]+$/.test(normalized)) return normalized;
+        return null;
+    }}
+
+    function colorPickerInputValue(color) {{
+        var normalized = normalizeColorValue(color);
+        if (!normalized || normalized.charAt(0) !== '#') return '#c0392b';
+        if (/^#[0-9a-f]{{6}}$/.test(normalized)) return normalized;
+        if (/^#[0-9a-f]{{3}}$/.test(normalized)) {{
+            return '#' + normalized[1] + normalized[1] + normalized[2] + normalized[2] + normalized[3] + normalized[3];
+        }}
+        if (/^#[0-9a-f]{{4}}$/.test(normalized)) {{
+            return '#' + normalized[1] + normalized[1] + normalized[2] + normalized[2] + normalized[3] + normalized[3];
+        }}
+        if (/^#[0-9a-f]{{8}}$/.test(normalized)) return '#' + normalized.slice(1, 7);
+        return '#c0392b';
+    }}
+
+    function loadRecentColors() {{
+        try {{
+            var raw = window.localStorage.getItem(RECENT_COLOR_STORAGE_KEY);
+            if (!raw) return [];
+            var parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .map(normalizeColorValue)
+                .filter(function(color, index, list) {{
+                    return !!color && list.indexOf(color) === index;
+                }})
+                .slice(0, MAX_RECENT_COLORS);
+        }} catch (e) {{
+            return [];
+        }}
+    }}
+
+    function persistRecentColors() {{
+        try {{
+            window.localStorage.setItem(
+                RECENT_COLOR_STORAGE_KEY,
+                JSON.stringify(recentColors.slice(0, MAX_RECENT_COLORS))
+            );
+        }} catch (e) {{}}
+    }}
+
+    function buildColorSwatch(color, onSelect) {{
+        var swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'swatch';
+        swatch.style.background = color;
+        swatch.title = color;
+        swatch.setAttribute('aria-label', color);
+        swatch.addEventListener('mousedown', function(e) {{
+            e.preventDefault();
+        }});
+        swatch.addEventListener('click', function(e) {{
+            e.preventDefault();
+            onSelect(color);
+        }});
+        return swatch;
+    }}
+
+    function renderRecentColorSwatches() {{
+        recentColorSwatches.innerHTML = '';
+        if (!recentColors.length) {{
+            recentColorSection.hidden = true;
+            return;
+        }}
+        recentColorSection.hidden = false;
+        recentColors.forEach(function(color) {{
+            recentColorSwatches.appendChild(buildColorSwatch(color, function(selectedColor) {{
+                applyColorSelection(selectedColor, {{ remember: true, closePopover: true }});
+            }}));
+        }});
+    }}
+
+    function rememberRecentColor(color) {{
+        var normalized = normalizeColorValue(color);
+        if (!normalized) return;
+        recentColors = [normalized].concat(recentColors.filter(function(existingColor) {{
+            return existingColor !== normalized;
+        }})).slice(0, MAX_RECENT_COLORS);
+        persistRecentColors();
+        renderRecentColorSwatches();
+    }}
+
     function wrapSelectionWithTag(tagName) {{
         if (selectionIsCollapsedOrMissing()) return false;
         var sel = window.getSelection();
@@ -754,6 +877,21 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         return true;
     }}
 
+    function applyColorSelection(color, options) {{
+        options = options || {{}};
+        var normalizedColor = color == null ? null : normalizeColorValue(color);
+        if (color != null && !normalizedColor) return false;
+        var applied = wrapSelectionWithColor(normalizedColor);
+        if (!applied) return false;
+        if (normalizedColor && options.remember) {{
+            rememberRecentColor(normalizedColor);
+        }}
+        if (options.closePopover) {{
+            hideColorPopover();
+        }}
+        return true;
+    }}
+
     function updateFormatButtonStates() {{
         var sel = window.getSelection();
         var hasSelection = sel && !sel.isCollapsed && sel.rangeCount > 0;
@@ -770,31 +908,26 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     }}
 
     function showColorPopover() {{
-        // Build swatches once.
+        recentColors = loadRecentColors();
+        renderRecentColorSwatches();
+
+        // Build preset swatches once.
         if (!colorSwatches.children.length) {{
-            var presets = [
-                '#c0392b', '#e67e22', '#f1c40f', '#27ae60', '#2980b9', '#8e44ad',
-                '#000000', '#555555', '#999999', '#16a085', '#2c3e50', '#d35400'
-            ];
-            presets.forEach(function(c) {{
-                var s = document.createElement('button');
-                s.className = 'swatch';
-                s.style.background = c;
-                s.title = c;
-                s.addEventListener('click', function(e) {{
-                    e.preventDefault();
-                    wrapSelectionWithColor(c);
-                    hideColorPopover();
-                }});
-                colorSwatches.appendChild(s);
+            PRESET_COLORS.forEach(function(color) {{
+                colorSwatches.appendChild(buildColorSwatch(color, function(selectedColor) {{
+                    applyColorSelection(selectedColor, {{ remember: true, closePopover: true }});
+                }}));
             }});
             var none = document.createElement('button');
+            none.type = 'button';
             none.className = 'swatch swatch-none';
             none.title = {json.dumps(labels["color"], ensure_ascii=False)};
+            none.addEventListener('mousedown', function(e) {{
+                e.preventDefault();
+            }});
             none.addEventListener('click', function(e) {{
                 e.preventDefault();
-                wrapSelectionWithColor(null);
-                hideColorPopover();
+                applyColorSelection(null, {{ closePopover: true }});
             }});
             colorSwatches.appendChild(none);
         }}
@@ -804,8 +937,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         colorPopover.style.top = (rect.bottom + 6) + 'px';
         colorPopover.style.left = rect.left + 'px';
         colorPopover.classList.add('visible');
-        colorPicker.value = '#c0392b';
+        colorPicker.value = colorPickerInputValue(recentColors[0]);
         colorHex.value = '';
+        lastAppliedPickerColor = null;
     }}
 
     // --- Save back to disk via sync server ---
@@ -1360,15 +1494,27 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         }}
     }});
     colorPicker.addEventListener('input', function(e) {{
-        wrapSelectionWithColor(e.target.value);
+        if (applyColorSelection(e.target.value, {{ remember: false }})) {{
+            lastAppliedPickerColor = normalizeColorValue(e.target.value);
+        }}
+    }});
+    colorPicker.addEventListener('change', function(e) {{
+        var selectedColor = lastAppliedPickerColor;
+        if (!selectedColor && applyColorSelection(e.target.value, {{ remember: false }})) {{
+            selectedColor = normalizeColorValue(e.target.value);
+        }}
+        if (selectedColor) {{
+            rememberRecentColor(selectedColor);
+            hideColorPopover();
+        }}
+        lastAppliedPickerColor = null;
     }});
     colorHex.addEventListener('keydown', function(e) {{
         if (e.key === 'Enter') {{
             e.preventDefault();
             var v = colorHex.value.trim();
             if (/^#[0-9a-fA-F]{{3,8}}$/.test(v)) {{
-                wrapSelectionWithColor(v);
-                hideColorPopover();
+                applyColorSelection(v, {{ remember: true, closePopover: true }});
             }}
         }}
     }});
