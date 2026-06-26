@@ -123,6 +123,25 @@ def load_css(css_path):
         return f.read()
 
 
+def theme_hides_photo(css_text):
+    """Return True if the theme CSS effectively hides .resume-photo.
+
+    Scans every `.resume-photo { ... }` block in source order and records the
+    last `display:` value seen. If the final value is `none`, the photo is
+    treated as hidden. This handles the common pattern (used by
+    user-themes/zh-with-photo) where a base rule sets `display: none` and a
+    later rule overrides it with `display: block`. It does not parse cascading
+    specificity or media queries — by design, anyone writing a custom theme
+    has already opted in and a heuristic is good enough for the warning.
+    """
+    last_display = None
+    for block in re.finditer(r"\.resume-photo\s*\{([^}]*)\}", css_text, re.DOTALL):
+        m = re.search(r"display\s*:\s*([a-zA-Z!-]+)", block.group(1), re.IGNORECASE)
+        if m:
+            last_display = m.group(1).lower()
+    return last_display is not None and last_display.split("!")[0].strip() == "none"
+
+
 def build_edit_script(resume_data, language, resume_json_path=None, sync_config=None):
     """Build inline JS/CSS for edit mode. Returns HTML string to inject before </body>.
 
@@ -1251,9 +1270,25 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
                 if (!titleEl || !listEl) return;
 
                 var title = titleEl.textContent.trim();
-                // Stable key: prefer original data-key attribute, fall back to normalized title
+                // Decide the JSON key for this category:
+                //  - If the user renamed the category in the editor (title no
+                //    longer matches the last-rendered display), use the new
+                //    title verbatim as the key.
+                //  - Otherwise reuse the stable data-key so a round-trip
+                //    (render -> edit -> save) does not mutate the key.
+                //  - For brand-new categories added in the editor, also use
+                //    the title verbatim — slugifying would destroy casing
+                //    ("AI / LLM" -> "ai_/_llm") and break CJK names.
                 var dataKey = cat.getAttribute('data-key');
-                var jsonKey = dataKey || title.toLowerCase().replace(/\\s+/g, '_');
+                var lastDisplay = cat.getAttribute('data-display');
+                var jsonKey;
+                if (!dataKey) {{
+                    jsonKey = title;
+                }} else if (lastDisplay && title !== lastDisplay) {{
+                    jsonKey = title;
+                }} else {{
+                    jsonKey = dataKey;
+                }}
 
                 var skillEls = listEl.querySelectorAll('.skill-item');
                 var skillsArr = [];
@@ -1392,6 +1427,20 @@ def generate_resume_html(resume_data, theme="modern", language="en", editable=Fa
 
     template = load_template(template_path)
     css = load_css(css_path)
+
+    # Warn the user when their resume declares a photo but the active theme
+    # hides it. The built-in themes all hide .resume-photo by design; a custom
+    # theme is required to actually display the photo. Surfacing this here
+    # saves the user from re-exporting and wondering why the photo is missing.
+    personal = resume_data.get("personal", {}) if isinstance(resume_data, dict) else {}
+    if personal.get("photo") and theme_hides_photo(css):
+        print(
+            "Note: resume has a `personal.photo` set, but theme "
+            f"'{theme}' hides it. Use a custom theme that enables "
+            "`.resume-photo { display: block }` (see user-themes/zh-with-photo "
+            "for an example) to show the photo.",
+            file=sys.stderr,
+        )
 
     # Build HTML content
     html_content = build_sections(resume_data, language, resume_json_path)
@@ -1636,8 +1685,11 @@ def build_skills(skills, language):
         item_spans = "".join(
             f'<span class="skill-item">{escape_text(s)}</span>' for s in items
         )
+        # data-key: stable JSON key (preserved on save unless the user renames
+        # the category). data-display: the title as last rendered, so the save
+        # path can detect a user rename and update the key accordingly.
         html += f"""
-<div class="skill-category" data-key="{category_key}">
+<div class="skill-category" data-key="{category_key}" data-display="{display_title}">
     <h3 class="category-title">{display_title}</h3>
     <div class="skill-list">{item_spans}</div>
 </div>
