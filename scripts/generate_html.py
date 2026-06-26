@@ -220,11 +220,13 @@ def build_edit_script(resume_data, language, resume_json_path=None, sync_config=
     transition: background 0.15s;
 }}
 .toolbar-btn-copy {{
-    background: #22c55e;
-    color: #fff;
+    background: transparent;
+    color: #f1f5f9;
+    border: 1px solid rgba(255,255,255,0.32);
 }}
 .toolbar-btn-copy:hover {{
-    background: #16a34a;
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.5);
 }}
 .toolbar-btn-cancel {{
     background: #ef4444;
@@ -232,6 +234,25 @@ def build_edit_script(resume_data, language, resume_json_path=None, sync_config=
 }}
 .toolbar-btn-cancel:hover {{
     background: #dc2626;
+}}
+/* Icon-style close button (replaces the solid red Done button) */
+.toolbar-btn-icon {{
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid rgba(255,255,255,0.18);
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}}
+.toolbar-btn-icon:hover {{
+    color: #f8fafc;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.55);
 }}
 /* Rich text format buttons */
 .toolbar-btn-format {{
@@ -467,6 +488,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     .edit-add-entry-btn,
     .toolbar-btn-format,
     .toolbar-btn-save,
+    .toolbar-btn-icon,
     .toolbar-divider {{
         display: none !important;
     }}
@@ -488,9 +510,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         <button class="toolbar-btn-format" id="edit-underline-btn" title="{escape_text(labels["underline"])}" disabled style="text-decoration: underline;">U</button>
         <button class="toolbar-btn-format" id="edit-color-btn" title="{escape_text(labels["color"])}" disabled>&#9728;</button>
         <span class="toolbar-divider"></span>
-        <button class="toolbar-btn-save" id="edit-save-btn" disabled>{escape_text(labels["save"])}</button>
         <button class="toolbar-btn-copy" id="edit-copy-btn">{escape_text(labels["copy_json"])}</button>
-        <button class="toolbar-btn-cancel" id="edit-cancel-btn">{escape_text(labels["done"])}</button>
+        <button class="toolbar-btn-save" id="edit-save-btn" disabled>{escape_text(labels["save"])}</button>
+        <button class="toolbar-btn-icon" id="edit-cancel-btn" title="{escape_text(labels["done"])}" aria-label="{escape_text(labels["done"])}">&#10005;</button>
     </div>
 </div>
 <div id="resume-color-popover">
