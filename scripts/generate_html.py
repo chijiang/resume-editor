@@ -584,16 +584,21 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     var colorSwatches = document.getElementById('resume-color-swatches');
     var colorPicker = document.getElementById('resume-color-picker');
     var colorHex = document.getElementById('resume-color-hex');
+    var resumeContainer = document.querySelector('.resume-container');
     var isEditing = false;
     var originalHtml = null;
     var RECENT_COLOR_STORAGE_KEY = 'resume-edit-recent-colors-v1';
     var MAX_RECENT_COLORS = 5;
+    var MAX_HISTORY_ENTRIES = 100;
     var PRESET_COLORS = [
         '#c0392b', '#e67e22', '#f1c40f', '#27ae60', '#2980b9', '#8e44ad',
         '#000000', '#555555', '#999999', '#16a085', '#2c3e50', '#d35400'
     ];
     var recentColors = [];
     var lastAppliedPickerColor = null;
+    var editHistory = [];
+    var editHistoryIndex = -1;
+    var isApplyingHistory = false;
 
     // Fields that serialize rich text back to the Markdown subset.
     // Everything else uses plain textContent.
@@ -799,7 +804,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         recentColorSection.hidden = false;
         recentColors.forEach(function(color) {{
             recentColorSwatches.appendChild(buildColorSwatch(color, function(selectedColor) {{
-                applyColorSelection(selectedColor, {{ remember: true, closePopover: true }});
+                if (applyColorSelection(selectedColor, {{ remember: true, closePopover: true }})) {{
+                    pushHistorySnapshot();
+                }}
             }}));
         }});
     }}
@@ -915,7 +922,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         if (!colorSwatches.children.length) {{
             PRESET_COLORS.forEach(function(color) {{
                 colorSwatches.appendChild(buildColorSwatch(color, function(selectedColor) {{
-                    applyColorSelection(selectedColor, {{ remember: true, closePopover: true }});
+                    if (applyColorSelection(selectedColor, {{ remember: true, closePopover: true }})) {{
+                        pushHistorySnapshot();
+                    }}
                 }}));
             }});
             var none = document.createElement('button');
@@ -927,7 +936,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
             }});
             none.addEventListener('click', function(e) {{
                 e.preventDefault();
-                applyColorSelection(null, {{ closePopover: true }});
+                if (applyColorSelection(null, {{ closePopover: true }})) {{
+                    pushHistorySnapshot();
+                }}
             }});
             colorSwatches.appendChild(none);
         }}
@@ -1026,6 +1037,104 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         }}, duration || 2000);
     }}
 
+    // Keep a lightweight DOM history for text edits plus custom edit actions
+    // such as color/format buttons and add/remove item controls.
+    function serializeHistorySnapshot() {{
+        if (!resumeContainer) return '';
+        var clone = resumeContainer.cloneNode(true);
+        clone.querySelectorAll('[data-edit-control]').forEach(function(node) {{ node.remove(); }});
+        clone.querySelectorAll('[contenteditable]').forEach(function(node) {{
+            node.removeAttribute('contenteditable');
+        }});
+        return clone.innerHTML;
+    }}
+
+    function pushHistorySnapshot() {{
+        if (!isEditing || isApplyingHistory || !resumeContainer) return false;
+        var snapshot = serializeHistorySnapshot();
+        if (!snapshot) return false;
+        if (editHistoryIndex >= 0 && editHistory[editHistoryIndex] === snapshot) return false;
+        if (editHistoryIndex < editHistory.length - 1) {{
+            editHistory = editHistory.slice(0, editHistoryIndex + 1);
+        }}
+        editHistory.push(snapshot);
+        if (editHistory.length > MAX_HISTORY_ENTRIES) {{
+            editHistory.shift();
+        }}
+        editHistoryIndex = editHistory.length - 1;
+        return true;
+    }}
+
+    function resetHistory() {{
+        editHistory = [];
+        editHistoryIndex = -1;
+        pushHistorySnapshot();
+    }}
+
+    function applyEditDecorations() {{
+        EDITABLE_SELECTORS.forEach(function(sel) {{
+            var els = document.querySelectorAll(sel);
+            els.forEach(function(el) {{
+                el.setAttribute('contenteditable', 'true');
+            }});
+        }});
+
+        document.querySelectorAll('.contact-info a').forEach(function(a) {{
+            a.removeEventListener('click', preventNav);
+            a.addEventListener('click', preventNav);
+        }});
+
+        removeListButtons();
+        removeEntryButtons();
+        addListButtons();
+        addEntryButtons();
+    }}
+
+    function clearEditDecorations() {{
+        EDITABLE_SELECTORS.forEach(function(sel) {{
+            var els = document.querySelectorAll(sel);
+            els.forEach(function(el) {{
+                el.removeAttribute('contenteditable');
+            }});
+        }});
+
+        document.querySelectorAll('.contact-info a').forEach(function(a) {{
+            a.removeEventListener('click', preventNav);
+        }});
+
+        removeListButtons();
+        removeEntryButtons();
+    }}
+
+    function restoreHistorySnapshot(snapshot) {{
+        if (!resumeContainer || !snapshot) return false;
+        isApplyingHistory = true;
+        hideColorPopover();
+        resumeContainer.innerHTML = snapshot;
+        applyEditDecorations();
+        updateFormatButtonStates();
+        isApplyingHistory = false;
+        return true;
+    }}
+
+    function undoHistory() {{
+        if (!isEditing || editHistoryIndex <= 0) return false;
+        editHistoryIndex -= 1;
+        return restoreHistorySnapshot(editHistory[editHistoryIndex]);
+    }}
+
+    function redoHistory() {{
+        if (!isEditing || editHistoryIndex >= editHistory.length - 1) return false;
+        editHistoryIndex += 1;
+        return restoreHistorySnapshot(editHistory[editHistoryIndex]);
+    }}
+
+    function isUndoRedoTargetBlocked(target) {{
+        if (!target || !target.closest) return false;
+        if (target.closest('#resume-color-popover')) return true;
+        return /^(INPUT|TEXTAREA|SELECT)$/i.test(target.tagName || '');
+    }}
+
     function toggleEditMode() {{
         if (!isEditing) {{
             enterEditMode();
@@ -1040,22 +1149,8 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         toolbar.classList.add('visible');
         btn.innerHTML = '&#10005;';
         btn.title = {json.dumps(labels["exit_edit_mode"], ensure_ascii=False)};
-
-        EDITABLE_SELECTORS.forEach(function(sel) {{
-            var els = document.querySelectorAll(sel);
-            els.forEach(function(el) {{
-                el.setAttribute('contenteditable', 'true');
-            }});
-        }});
-
-        // Suppress link navigation during editing
-        document.querySelectorAll('.contact-info a').forEach(function(a) {{
-            a.addEventListener('click', preventNav);
-        }});
-
-        // Add list item management buttons
-        addListButtons();
-        addEntryButtons();
+        applyEditDecorations();
+        resetHistory();
     }}
 
     function preventNav(e) {{
@@ -1072,21 +1167,9 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         toolbar.classList.remove('visible');
         btn.innerHTML = '&#9998;';
         btn.title = {json.dumps(labels["edit_resume"], ensure_ascii=False)};
-
-        EDITABLE_SELECTORS.forEach(function(sel) {{
-            var els = document.querySelectorAll(sel);
-            els.forEach(function(el) {{
-                el.removeAttribute('contenteditable');
-            }});
-        }});
-
-        // Restore link navigation
-        document.querySelectorAll('.contact-info a').forEach(function(a) {{
-            a.removeEventListener('click', preventNav);
-        }});
-
-        removeListButtons();
-        removeEntryButtons();
+        clearEditDecorations();
+        editHistory = [];
+        editHistoryIndex = -1;
     }}
 
     function makeEntryButton(label, sectionType) {{
@@ -1145,6 +1228,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
                 attachRemoveBtn(item);
                 container.appendChild(item);
                 item.focus();
+                pushHistorySnapshot();
             }});
             container.parentNode.insertBefore(addBtn, container.nextSibling);
             var itemSelector = isSkillList ? '.skill-item' : 'li';
@@ -1192,6 +1276,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
             sel.removeAllRanges();
             sel.addRange(range);
         }}
+        pushHistorySnapshot();
     }}
 
     function addListButtons() {{
@@ -1215,6 +1300,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
                 var sel = window.getSelection();
                 sel.removeAllRanges();
                 sel.addRange(range);
+                pushHistorySnapshot();
             }});
             container.parentNode.insertBefore(addBtn, container.nextSibling);
 
@@ -1233,6 +1319,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         rmBtn.addEventListener('click', function(e) {{
             e.stopPropagation();
             item.remove();
+            pushHistorySnapshot();
         }});
         item.appendChild(rmBtn);
     }}
@@ -1472,17 +1559,17 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     boldBtn.addEventListener('mousedown', function(e) {{
         // Prevent stealing focus/selection from the editable region.
         e.preventDefault();
-        wrapSelectionWithTag('strong');
+        if (wrapSelectionWithTag('strong')) pushHistorySnapshot();
         updateFormatButtonStates();
     }});
     italicBtn.addEventListener('mousedown', function(e) {{
         e.preventDefault();
-        wrapSelectionWithTag('em');
+        if (wrapSelectionWithTag('em')) pushHistorySnapshot();
         updateFormatButtonStates();
     }});
     underlineBtn.addEventListener('mousedown', function(e) {{
         e.preventDefault();
-        wrapSelectionWithTag('u');
+        if (wrapSelectionWithTag('u')) pushHistorySnapshot();
         updateFormatButtonStates();
     }});
     colorBtn.addEventListener('click', function(e) {{
@@ -1506,6 +1593,7 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         if (selectedColor) {{
             rememberRecentColor(selectedColor);
             hideColorPopover();
+            pushHistorySnapshot();
         }}
         lastAppliedPickerColor = null;
     }});
@@ -1514,9 +1602,27 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
             e.preventDefault();
             var v = colorHex.value.trim();
             if (/^#[0-9a-fA-F]{{3,8}}$/.test(v)) {{
-                applyColorSelection(v, {{ remember: true, closePopover: true }});
+                if (applyColorSelection(v, {{ remember: true, closePopover: true }})) {{
+                    pushHistorySnapshot();
+                }}
             }}
         }}
+    }});
+    document.addEventListener('beforeinput', function(e) {{
+        if (!isEditing || isApplyingHistory || isUndoRedoTargetBlocked(e.target)) return;
+        if (e.inputType === 'historyUndo') {{
+            e.preventDefault();
+            undoHistory();
+        }} else if (e.inputType === 'historyRedo') {{
+            e.preventDefault();
+            redoHistory();
+        }}
+    }});
+    document.addEventListener('input', function(e) {{
+        if (!isEditing || isApplyingHistory || isUndoRedoTargetBlocked(e.target)) return;
+        if (!e.target || !e.target.closest || !e.target.closest('[contenteditable="true"]')) return;
+        pushHistorySnapshot();
+        updateFormatButtonStates();
     }});
     // Hide color popover on outside click.
     document.addEventListener('mousedown', function(e) {{
@@ -1538,13 +1644,31 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
     document.addEventListener('keydown', function(e) {{
         if (!isEditing) return;
         if (!(e.ctrlKey || e.metaKey)) return;
+        if (isUndoRedoTargetBlocked(e.target)) return;
         var key = e.key.toLowerCase();
+        if (key === 'z') {{
+            e.preventDefault();
+            if (e.shiftKey) {{
+                redoHistory();
+            }} else {{
+                undoHistory();
+            }}
+            return;
+        }}
+        if (key === 'y' && e.ctrlKey && !e.metaKey) {{
+            e.preventDefault();
+            redoHistory();
+            return;
+        }}
         if (key === 'b' || key === 'i' || key === 'u') {{
             // Allow the browser's default execCommand to run, which produces
             // <b>/<i>/<u> (or <strong>/<em> in some browsers) — both are
             // handled by serializeInlineMarkup.
             // We just don't preventDefault.
-            setTimeout(updateFormatButtonStates, 0);
+            setTimeout(function() {{
+                updateFormatButtonStates();
+                pushHistorySnapshot();
+            }}, 0);
         }}
     }});
 
