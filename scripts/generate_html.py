@@ -16,9 +16,11 @@ from pathlib import Path
 from resume_utils import (
     DEFAULT_THEME,
     SUPPORTED_LANGUAGES,
+    escape_html_attr,
     list_available_themes,
     get_localized_text,
     normalize_resume_data,
+    resolve_profile_url,
     resolve_theme_assets,
     resolve_photo_src,
     validate_resume_data,
@@ -1355,10 +1357,10 @@ body.resume-editing .skill-item .edit-remove-btn:hover {{
         if (location && result.personal) result.personal.location = location.textContent.trim();
 
         var linkedin = document.querySelector('.contact-linkedin a');
-        if (linkedin && result.personal) result.personal.linkedin = linkedin.textContent.trim();
+        if (linkedin && result.personal) result.personal.linkedin = (linkedin.getAttribute('href') || '').trim();
 
         var github = document.querySelector('.contact-github a');
-        if (github && result.personal) result.personal.github = github.textContent.trim();
+        if (github && result.personal) result.personal.github = (github.getAttribute('href') || '').trim();
 
         // Summary
         var summaryP = document.querySelector('[data-section="summary"] p');
@@ -1774,8 +1776,8 @@ def build_header(personal, language, resume_json_path=None):
     email = escape_text(personal.get("email", ""))
     phone = escape_text(personal.get("phone", ""))
     location = escape_text(personal.get("location", ""))
-    linkedin = escape_text(personal.get("linkedin", ""))
-    github = escape_text(personal.get("github", ""))
+    linkedin_url = resolve_profile_url(personal.get("linkedin", ""))
+    github_url = resolve_profile_url(personal.get("github", ""))
     photo_src = resolve_photo_src(personal.get("photo", ""), resume_json_path)
 
     contact_items = []
@@ -1785,15 +1787,23 @@ def build_header(personal, language, resume_json_path=None):
         contact_items.append(f'<span class="contact-item contact-phone">{phone}</span>')
     if location:
         contact_items.append(f'<span class="contact-item contact-location">{location}</span>')
-    if linkedin:
-        contact_items.append(f'<span class="contact-item contact-linkedin"><a href="{linkedin}" target="_blank">LinkedIn</a></span>')
-    if github:
-        contact_items.append(f'<span class="contact-item contact-github"><a href="{github}" target="_blank">GitHub</a></span>')
+    if linkedin_url:
+        safe_linkedin = escape_html_attr(linkedin_url)
+        contact_items.append(
+            f'<span class="contact-item contact-linkedin"><a href="{safe_linkedin}" '
+            'target="_blank" rel="noopener noreferrer">LinkedIn</a></span>'
+        )
+    if github_url:
+        safe_github = escape_html_attr(github_url)
+        contact_items.append(
+            f'<span class="contact-item contact-github"><a href="{safe_github}" '
+            'target="_blank" rel="noopener noreferrer">GitHub</a></span>'
+        )
 
     contact_html = "\n".join(contact_items) if contact_items else ""
     # Photo is opt-in per theme. Built-in themes hide .resume-photo via CSS;
     # a custom theme enables it by setting display: block (or similar).
-    photo_html = f'<img class="resume-photo" src="{photo_src}" alt="">\n' if photo_src else ""
+    photo_html = f'<img class="resume-photo" src="{escape_html_attr(photo_src)}" alt="">\n' if photo_src else ""
 
     return f"""
 <header class="resume-header">
